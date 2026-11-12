@@ -58,3 +58,34 @@ These didn't cause wrong answers. They're candidates for the next docs iteration
 - How the CLI handles `429` responses internally (backoff, maximum retries).
 - Whether retention is measured from when the event was received.
 - Whether retry delays have jitter, and whether Hookferry honors a destination's `Retry-After`.
+
+## Round 3: retrieval test on the live MCP server
+
+After deployment, each of the 10 round 1 questions went to the live docs MCP server's search tool (`search_hookferry` at `https://tony-isaac-portfolio.mintlify.site/mcp`). This tests retrieval, the first step for any MCP client: does the page with the answer come back near the top? The script is `retrieval.py`. It sends each question and records where the answer page ranks.
+
+| # | Question | Before fixes | Notes |
+| :-- | :-- | :-- | :-- |
+| 1 | Express handler returns 401 for every event | Partial | Top result was the code guide, which covers the fix only in a code comment. The troubleshooting page ranked 6th because its headings never said "Express" or "Flask". |
+| 2 | Stopped `hookferry listen` overnight: will missed webhooks show up? | Miss | No top-3 result explained `undelivered` events. The answer was spread across concept pages, and no heading matched how users ask. |
+| 3 | Retry count and duration for HTTPS | Found (rank 1) | |
+| 4 | `$prefix` filter command | Found (rank 1) | |
+| 5 | GitHub Actions without login | Found (rank 1) | |
+| 6 | Replay a 10-day-old event on Free | Found (rank 1) | The rank 1 page (Replay failed events) states the 3-day limit and `event_expired`. |
+| 7 | Docker "connection refused" | Found (rank 1) | |
+| 8 | API rate limit behavior | Found (rank 1) | |
+| 9 | Delete a source with the CLI | Found (rank 1) | The FAQ entry added after round 1 ranks first. |
+| 10 | Teammates sharing a source | Found (rank 1) | |
+
+**Before fixes:** 8 of 10 found, 1 partial, 1 missed.
+
+### Fixes made after round 3
+
+| Finding | Fix |
+| :-- | :-- |
+| Q2 had no page worded the way users ask | Added the FAQ entry "I stopped hookferry listen. Do I lose webhooks that arrive while it's off?" |
+| Q1's troubleshooting page didn't use the words people search with | Renamed it "Fix 401 signature verification errors", added Express and Flask to the description and first heading |
+| The live MCP and skill-install commands pointed at the placeholder `docs.hookferry.dev` | Switched every docs link to `tony-isaac-portfolio.mintlify.site` |
+
+**Lesson:** a reading test (rounds 1 and 2) checks that the answer exists. A retrieval test (round 3) checks that a search can find it. The FAQ ranked first for 3 questions, which shows that question-shaped headings help retrieval.
+
+**After fixes:** RETEST_PENDING

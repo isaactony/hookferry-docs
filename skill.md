@@ -6,14 +6,14 @@ compatibility: The hookferry CLI 2.4 runs on macOS, Linux, and Windows. The npm 
 metadata:
   author: hookferry
   version: "2.4"
-  docs: https://docs.hookferry.dev
+  docs: https://tony-isaac-portfolio.mintlify.site
 ---
 
 # Hookferry
 
 Hookferry gives developers a public **source URL** for webhooks, stores every request as an **event**, and delivers it through **routes** to a **destination**: a running `hookferry listen` session (CLI destination) or a public HTTPS URL (HTTPS destination).
 
-Full docs: https://docs.hookferry.dev. Page index: https://docs.hookferry.dev/llms.txt. Add `.md` to any page URL for Markdown.
+Full docs: https://tony-isaac-portfolio.mintlify.site. Page index: https://tony-isaac-portfolio.mintlify.site/llms.txt. Add `.md` to any page URL for Markdown.
 
 ## Before you act
 
@@ -41,7 +41,7 @@ Header format: `Hookferry-Signature: t=<unix seconds>,v1=<hex>`.
 3. Hex-encode it and compare to `v1` in constant time.
 4. Reject if `t` is more than 300 seconds from now.
 
-Each destination has its own signing secret. Complete Express and Flask code: https://docs.hookferry.dev/guides/verify-signatures.md
+Each destination has its own signing secret. Complete Express and Flask code: https://tony-isaac-portfolio.mintlify.site/guides/verify-signatures.md
 
 ### Inspect and replay events
 
@@ -79,12 +79,12 @@ Set `HOOKFERRY_API_KEY` (use an `hf_test_` key), then run `hookferry listen <por
 - Cursor pagination: `limit` (max 100) and `cursor`; responses have `has_more` and `next_cursor`.
 - Rate limit: 100 requests per 10 seconds per key; on `429`, wait for `Retry-After`.
 - Errors: `{"error": {"type", "code", "message", "doc_url"}}`. Handle by `code`.
-- OpenAPI spec: linked in https://docs.hookferry.dev/llms.txt, and downloadable from any API reference page.
+- OpenAPI spec: linked in https://tony-isaac-portfolio.mintlify.site/llms.txt, and downloadable from any API reference page.
 
 ## Troubleshooting map
 
 | Symptom | Page |
 | :-- | :-- |
-| Handler returns 401 on every event | https://docs.hookferry.dev/troubleshooting/signature-errors.md |
-| `✕ connection refused` in listen output | https://docs.hookferry.dev/troubleshooting/connection-refused.md |
-| Provider sent it but the app never got it | https://docs.hookferry.dev/troubleshooting/missing-events.md |
+| Handler returns 401 on every event | https://tony-isaac-portfolio.mintlify.site/troubleshooting/signature-errors.md |
+| `✕ connection refused` in listen output | https://tony-isaac-portfolio.mintlify.site/troubleshooting/connection-refused.md |
+| Provider sent it but the app never got it | https://tony-isaac-portfolio.mintlify.site/troubleshooting/missing-events.md |

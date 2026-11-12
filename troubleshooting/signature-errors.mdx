@@ -1,11 +1,11 @@
 ---
-title: "Fix signature verification errors"
-description: "Find and fix the cause when your webhook handler rejects Hookferry requests with 401 because the Hookferry-Signature check fails."
+title: "Fix 401 signature verification errors"
+description: "Fix a webhook handler in Express, Flask, or any framework that returns 401 for every Hookferry event because the Hookferry-Signature check fails."
 ---
 
-Your handler returns `401` and the listen session shows `→ 401 Unauthorized` for every event. Work through these causes in order. The first one causes most failures.
+Your handler returns `401` and the listen session shows `→ 401 Unauthorized` for every event. This happens in Express, Flask, and other frameworks for the same few reasons. Work through these causes in order. The first one causes most failures.
 
-## The body was parsed before verification
+## Express or Flask parsed the body before verification
 
 **Symptom:** Every request fails, including ones you send yourself with `curl`.
 

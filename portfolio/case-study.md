@@ -75,6 +75,10 @@ A separate AI agent, with no memory of writing the docs, answered 10 realistic u
 
 Full question-by-question results: [ai-question-test.md](ai-question-test.md).
 
+**Round 3 (live MCP retrieval):** After deployment, the 10 questions went to the site's live MCP search tool, the first thing any connected AI client calls. 8 of 10 returned the answer page first. One was partial and one missed. Both failures came from headings that didn't match how users phrase questions, so the fixes added a question-shaped FAQ entry and put "401", "Express", and "Flask" into the troubleshooting page's title and headings. After fixes: RETEST_PENDING.
+
+The takeaway for clients: **a reading test shows the answer exists, and a retrieval test shows an AI can find it.** Both are needed.
+
 **After deployment:** [Mintlify agent-readiness score from `mint score`: ___ ]
 
 ## What this shows

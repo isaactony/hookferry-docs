@@ -22,21 +22,9 @@ These steps need your accounts or credentials, so you need to do them yourself.
 3. Set the docs path to the repository root (`docs.json` is at the root).
 4. Wait for the first deployment. The dashboard shows your URL, for example `https://<subdomain>.mintlify.app`.
 
-## 3. Replace the fictional docs domain (recommended)
+## 3. Replace the fictional docs domain (done)
 
-The pages refer to `https://docs.hookferry.dev`, a domain that doesn't exist. After deploying, choose one option:
-
-- **Keep it.** It's clearly part of the fictional product, but links such as the MCP URL in `ai-tools.mdx` won't work for visitors.
-- **Point to your real URL.** Replace `docs.hookferry.dev` with your Mintlify subdomain:
-
-  ```bash
-  grep -rl 'docs.hookferry.dev' --include='*.mdx' --include='*.md' --include='*.yaml' . \
-    | xargs sed -i '' 's#docs.hookferry.dev#<subdomain>.mintlify.app#g'
-  ```
-
-  On Linux, use `sed -i` without `''`.
-
-Leave `api.hookferry.dev`, `in.hookferry.dev`, and `app.hookferry.dev` as they are. They're part of the fictional product.
+All docs links now use `https://tony-isaac-portfolio.mintlify.site`. The product's own domains (`api.hookferry.dev`, `in.hookferry.dev`, and `app.hookferry.dev`) stay fictional on purpose.
 
 ## 4. Optional: custom domain
 

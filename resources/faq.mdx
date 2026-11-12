@@ -25,6 +25,24 @@ description: "Short answers to common questions about Hookferry plans, source UR
     If your network requires a proxy, set `HTTPS_PROXY`. See [CLI global flags, environment variables, and exit codes](/cli/global-options#use-a-proxy).
   </Accordion>
 
+  <Accordion title="I stopped hookferry listen. Do I lose webhooks that arrive while it's off?">
+    No. Hookferry stores every webhook that reaches your source URL, even when no listen session is running. Those events get the status `undelivered`, and Hookferry doesn't retry them automatically when you start listening again.
+
+    To deliver them, start the listen session:
+
+    ```bash
+    hookferry listen 3000 --source billing-dev --path /webhooks
+    ```
+
+    Then, in a second terminal, replay the undelivered events:
+
+    ```bash
+    hookferry replay --source billing-dev --status undelivered --yes
+    ```
+
+    You can replay events only inside your plan's retention period: 3 days on Free and 30 days on Team. See [Replay failed events](/guides/replay-failed-events).
+  </Accordion>
+
   <Accordion title="Can my teammates and I listen to the same source?">
     Yes. Each person who runs `hookferry listen` on a source gets their own CLI route, so everyone receives every event. Teammates need to be members of the same workspace, which requires the Team plan.
 
