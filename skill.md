@@ -4,7 +4,7 @@ description: Receive, forward, inspect, and replay webhooks with the Hookferry C
 license: MIT
 compatibility: The hookferry CLI 2.4 runs on macOS, Linux, and Windows. The npm install needs Node.js 18 or later. The Cloud API is HTTPS at https://api.hookferry.dev/v1.
 metadata:
-  author: hookferry
+  author: Isaac Tony
   version: "2.4"
   docs: https://tony-isaac-portfolio.mintlify.site
 ---

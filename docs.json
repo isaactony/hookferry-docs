@@ -175,10 +175,42 @@
   },
   "footer": {
     "socials": {
-      "github": "https://github.com/hookferry"
-    }
+      "github": "https://github.com/isaactony"
+    },
+    "links": [
+      {
+        "header": "Created by",
+        "items": [
+          {
+            "label": "Isaac Tony, technical writer",
+            "href": "https://github.com/isaactony"
+          },
+          {
+            "label": "Source on GitHub",
+            "href": "https://github.com/isaactony/hookferry-docs"
+          }
+        ]
+      },
+      {
+        "header": "Resources",
+        "items": [
+          {
+            "label": "AI readiness checklist",
+            "href": "/resources/ai-readiness-checklist"
+          },
+          {
+            "label": "Glossary",
+            "href": "/resources/glossary"
+          }
+        ]
+      }
+    ]
   },
   "seo": {
     "indexing": "navigable"
+  },
+  "banner": {
+    "content": "Hookferry is a fictional product. This documentation site is a portfolio project created by [Isaac Tony](https://github.com/isaactony), technical writer.",
+    "dismissible": true
   }
 }

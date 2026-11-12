@@ -1,5 +1,7 @@
 # Hookferry docs
 
+Created by **[Isaac Tony](https://github.com/isaactony)**, technical writer. Live site: https://tony-isaac-portfolio.mintlify.site
+
 An AI-ready documentation site, built with [Mintlify](https://mintlify.com), for **Hookferry**: a fictional CLI and REST API for receiving, forwarding, inspecting, and replaying webhooks.
 
 > Hookferry is not a real product. Its domains (`hookferry.dev`), npm package, and Homebrew tap don't exist. The site is a portfolio project that shows information architecture, technical writing, and AI-readiness work on a realistic product.
