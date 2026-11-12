@@ -1,0 +1,72 @@
+---
+title: "Sources, routes, and destinations"
+description: "How a source receives webhooks, how routes decide where each event goes, and the difference between CLI and HTTPS destinations."
+---
+
+Hookferry connects three objects. A **source** receives webhooks, a **route** decides whether to deliver each one, and a **destination** is where the route delivers it.
+
+```text
+Provider ──▶ Source ──▶ Route (filter) ──▶ Destination
+                    └─▶ Route (filter) ──▶ Destination
+```
+
+## Sources receive webhooks
+
+A source is a public HTTPS endpoint. Each source has a name, an ID that starts with `src_`, and a source URL:
+
+```text
+https://in.hookferry.dev/src_9fK2mQ7wLx
+```
+
+Give the source URL to your webhook provider as the webhook endpoint. The source URL accepts any HTTP method and returns `200 OK` as soon as Hookferry stores the request. Your app's response never reaches the provider.
+
+A source rejects a request in these cases:
+
+| Response | Cause |
+| :-- | :-- |
+| `413 Payload Too Large` | The body is larger than 1 MB. |
+| `410 Gone` | The source was deleted. |
+
+Create a source with [`hookferry listen`](/cli/listen) or the [Create a source](/api-reference/sources/create-a-source) endpoint. Source names are unique in a workspace.
+
+### Delete or rename a source
+
+The CLI can create sources but can't delete or rename them. Use one of these instead:
+
+- **Dashboard:** open the source and select **Delete source**.
+- **API:** call [Delete a source](/api-reference/sources/delete-a-source) with the source ID, for example `DELETE https://api.hookferry.dev/v1/sources/src_9fK2mQ7wLx`.
+
+Deleting a source also deletes its routes and stored events, and the source URL returns `410 Gone` to providers. You can't undo it. Sources can't be renamed: create a source with the new name and update the URL in your provider's settings.
+
+### Ephemeral sources
+
+An ephemeral source is deleted, with its events, 24 hours after creation. Use ephemeral sources for CI runs so test sources don't build up. See [Use Hookferry in CI](/guides/use-hookferry-in-ci).
+
+## Routes decide where events go
+
+A route connects one source to one destination. A source can have many routes, and Hookferry evaluates every route for every event.
+
+Each route can have a **filter**. If an event doesn't match the filter, the route skips it. A route without a filter delivers every event. For filter syntax, see [Filter events with route rules](/guides/filter-events).
+
+You can pause a route. A paused route skips every event, but the source still stores them, so you can replay them later.
+
+## Destinations receive deliveries
+
+Every route has one destination. There are two destination types:
+
+| Type | Delivers to | Created by | Automatic retries |
+| :-- | :-- | :-- | :-- |
+| `cli` | A running `hookferry listen` session, which forwards to a local URL such as `http://localhost:3000/webhooks` | `hookferry listen` | No |
+| `https` | A public HTTPS URL, such as a staging server | The dashboard or the [Create a route](/api-reference/routes/create-a-route) endpoint | Yes, up to 8 attempts |
+
+<Note>
+  A CLI destination only receives events while a `hookferry listen` session is connected. Events that arrive while no session is connected get the status `undelivered`. Hookferry doesn't retry them automatically. To deliver them, [replay them](/guides/replay-failed-events).
+</Note>
+
+Each destination has its own **signing secret**, which starts with `whsec_`. Hookferry uses it to sign every request it delivers. See [How Hookferry signs requests](/concepts/signature-verification).
+
+## Related pages
+
+- [Events and delivery attempts](/concepts/events-and-attempts)
+- [Retries and replay](/concepts/retries-and-replay)
+- [Glossary](/resources/glossary)

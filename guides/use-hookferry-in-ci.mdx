@@ -1,0 +1,91 @@
+---
+title: "Use Hookferry in CI"
+description: "Receive real webhooks in CI test runs with an API key, an ephemeral source per run, and a complete GitHub Actions workflow."
+---
+
+Use Hookferry in CI to run end-to-end tests that depend on webhooks from a provider's test mode.
+
+## Prerequisites
+
+- A Hookferry API key that starts with `hf_test_`. Create one in the dashboard under **Settings → API keys**.
+- A CI system that can store secrets and run a background process. This guide uses GitHub Actions.
+- A test suite that triggers a webhook and starts your app on a known port.
+
+## How CI runs differ from local development
+
+| Local development | CI |
+| :-- | :-- |
+| Sign in with `hookferry login` | Set `HOOKFERRY_API_KEY` |
+| One long-lived source | One ephemeral source per run |
+| Watch the listen output | Check event status with `--json` |
+
+Ephemeral sources are deleted 24 hours after creation, so CI runs don't leave old sources behind.
+
+<Steps>
+  <Step title="Store the API key as a CI secret">
+    In your GitHub repository, go to **Settings → Secrets and variables → Actions** and add a secret named `HOOKFERRY_API_KEY` with your `hf_test_` key.
+  </Step>
+
+  <Step title="Add the workflow">
+    Save this file as `.github/workflows/webhook-tests.yml`:
+
+    ```yaml .github/workflows/webhook-tests.yml
+    name: Webhook tests
+
+    on: [push]
+
+    jobs:
+      test:
+        runs-on: ubuntu-latest
+        env:
+          HOOKFERRY_API_KEY: ${{ secrets.HOOKFERRY_API_KEY }}
+          SOURCE_NAME: ci-${{ github.run_id }}
+        steps:
+          - uses: actions/checkout@v4
+
+          - uses: actions/setup-node@v4
+            with:
+              node-version: 20
+
+          - name: Install dependencies and the Hookferry CLI
+            run: |
+              npm ci
+              npm install --global @hookferry/cli
+
+          - name: Start the app
+            run: npm start &
+
+          - name: Start a listen session
+            run: |
+              hookferry listen 3000 --source "$SOURCE_NAME" --path /webhooks --ephemeral --json > listen.log &
+              # Wait up to 30 seconds for the session line
+              for i in $(seq 1 30); do [ -s listen.log ] && break; sleep 1; done
+              echo "SOURCE_URL=$(head -n 1 listen.log | jq -r .source_url)" >> "$GITHUB_ENV"
+
+          - name: Run tests
+            run: npm test
+
+          - name: Check that every event was delivered
+            run: |
+              not_delivered=$(hookferry events list --source "$SOURCE_NAME" --json \
+                | jq '[.[] | select(.status != "delivered")] | length')
+              echo "Events not delivered: $not_delivered"
+              test "$not_delivered" -eq 0
+    ```
+
+    Your tests read `SOURCE_URL` from the environment and register it with the provider's test mode.
+  </Step>
+
+  <Step title="Push and check the run">
+    Push a commit. In the run log, the **Check that every event was delivered** step prints `Events not delivered: 0` when every webhook reached your app.
+  </Step>
+</Steps>
+
+## Use test keys in CI
+
+Keys that start with `hf_test_` can do everything the CI workflow needs, including `hookferry listen`, but they can't delete sources that a `hf_live_` key created. Use test keys in CI so a misconfigured job can't change your team's shared sources.
+
+## Related pages
+
+- [CLI global flags, environment variables, and exit codes](/cli/global-options)
+- [hookferry listen](/cli/listen)

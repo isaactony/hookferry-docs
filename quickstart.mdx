@@ -1,0 +1,118 @@
+---
+title: "Quickstart: forward your first webhook to localhost"
+description: "Install the Hookferry CLI, start a listen session, and receive a test webhook in a local app in about five minutes."
+---
+
+In this quickstart, you run a small local app, connect it to Hookferry, and send it a webhook through a public source URL.
+
+## Prerequisites
+
+- A Hookferry account. Sign up at [app.hookferry.dev](https://app.hookferry.dev).
+- macOS, Linux, or Windows with a terminal.
+- Node.js 18 or later, to run the example app in step 2. Any language works for your own app.
+- `curl`, to send the test webhook.
+
+<Steps>
+  <Step title="Install the CLI and sign in">
+    Install the CLI with your preferred method. For all options, see [Install the Hookferry CLI](/installation).
+
+    <CodeGroup>
+    ```bash Homebrew
+    brew install hookferry/tap/hookferry
+    ```
+
+    ```bash npm
+    npm install --global @hookferry/cli
+    ```
+    </CodeGroup>
+
+    Sign in. The command opens your browser to approve the CLI.
+
+    ```bash
+    hookferry login
+    ```
+
+    When sign-in succeeds, the CLI prints `Logged in as <your email>`.
+  </Step>
+
+  <Step title="Start a local app that receives webhooks">
+    Save this file as `server.js`. It logs every request it receives on `/webhooks` and returns `200`.
+
+    ```javascript server.js
+    const http = require("node:http");
+
+    const server = http.createServer((req, res) => {
+      let body = "";
+      req.on("data", (chunk) => (body += chunk));
+      req.on("end", () => {
+        console.log(`${req.method} ${req.url}`);
+        console.log("Hookferry-Signature:", req.headers["hookferry-signature"]);
+        console.log("Body:", body);
+        res.writeHead(200).end("ok");
+      });
+    });
+
+    server.listen(3000, () => console.log("Listening on http://localhost:3000"));
+    ```
+
+    Run it:
+
+    ```bash
+    node server.js
+    ```
+  </Step>
+
+  <Step title="Start a listen session">
+    In a second terminal, run `hookferry listen` with the port and path of your app. The `--source` flag names the source. If the source doesn't exist, the CLI creates it.
+
+    ```bash
+    hookferry listen 3000 --path /webhooks --source quickstart
+    ```
+
+    The CLI prints the source URL and the signing secret:
+
+    ```text Output
+    Source      quickstart (src_9fK2mQ7wLx)
+    Source URL  https://in.hookferry.dev/src_9fK2mQ7wLx
+    Forwarding  → http://localhost:3000/webhooks
+    Secret      whsec_3c1b7f0e9a5d4c2b8e6f
+    Ready. Waiting for events… (Ctrl+C to stop)
+    ```
+
+    Keep this terminal open. Hookferry forwards events only while the session runs.
+  </Step>
+
+  <Step title="Send a test webhook">
+    In a third terminal, send a request to the source URL from step 3. Replace the URL with yours.
+
+    ```bash
+    curl -X POST https://in.hookferry.dev/src_9fK2mQ7wLx \
+      -H "Content-Type: application/json" \
+      -d '{"type":"invoice.paid","id":"inv_1042"}'
+    ```
+
+    The listen session prints a line for the event:
+
+    ```text Output
+    09:20:11  evt_2Lq0Vb8sNd  POST /webhooks  → 200 OK  (14 ms)
+    ```
+
+    The terminal running `server.js` prints the request, including the `Hookferry-Signature` header.
+  </Step>
+</Steps>
+
+## Check that it worked
+
+List the events for the source:
+
+```bash
+hookferry events list --source quickstart
+```
+
+The event from step 4 appears with the status `delivered`.
+
+## Next steps
+
+- [Verify webhook signatures in Node.js and Python](/guides/verify-signatures) before you trust a request.
+- [Forward provider webhooks to your local app](/guides/forward-webhooks-to-localhost) to connect a real provider.
+- [Replay failed events](/guides/replay-failed-events) after you fix a bug in your handler.

@@ -1,0 +1,87 @@
+---
+title: "API pagination"
+description: "Page through Hookferry list endpoints with the limit and cursor parameters and the has_more and next_cursor response fields."
+---
+
+List endpoints, such as [List events](/api-reference/events/list-events), return results in pages. Hookferry uses cursor-based pagination.
+
+## Request parameters
+
+| Parameter | Default | Description |
+| :-- | :-- | :-- |
+| `limit` | `20` | Items per page, from 1 to 100. |
+| `cursor` | None | The `next_cursor` value from the previous page. Omit it for the first page. |
+
+## Response fields
+
+```json Example response
+{
+  "data": [{ "id": "evt_2Lq0Vb8sNd", "status": "delivered" }],
+  "has_more": true,
+  "next_cursor": "c_eyJpZCI6ImV2dF8yTHEwIn0"
+}
+```
+
+| Field | Description |
+| :-- | :-- |
+| `data` | The items on this page. |
+| `has_more` | `true` if there are more items after this page. |
+| `next_cursor` | Pass this as `cursor` to get the next page. `null` on the last page. |
+
+Cursors are opaque. Don't build or change them. A cursor stays valid for 24 hours.
+
+## Fetch every page
+
+<CodeGroup>
+```javascript Node.js
+async function listAllEvents(sourceId) {
+  const events = [];
+  let cursor = null;
+  do {
+    const params = new URLSearchParams({ source_id: sourceId, limit: "100" });
+    if (cursor) params.set("cursor", cursor);
+    const response = await fetch(`https://api.hookferry.dev/v1/events?${params}`, {
+      headers: { Authorization: `Bearer ${process.env.HOOKFERRY_API_KEY}` },
+    });
+    if (!response.ok) throw new Error(`Hookferry API error: ${response.status}`);
+    const page = await response.json();
+    events.push(...page.data);
+    cursor = page.has_more ? page.next_cursor : null;
+  } while (cursor);
+  return events;
+}
+
+listAllEvents("src_9fK2mQ7wLx").then((events) => console.log(events.length));
+```
+
+```python Python
+import os
+
+import requests
+
+
+def list_all_events(source_id: str) -> list[dict]:
+    events, cursor = [], None
+    while True:
+        params = {"source_id": source_id, "limit": 100}
+        if cursor:
+            params["cursor"] = cursor
+        response = requests.get(
+            "https://api.hookferry.dev/v1/events",
+            headers={"Authorization": f"Bearer {os.environ['HOOKFERRY_API_KEY']}"},
+            params=params,
+            timeout=10,
+        )
+        response.raise_for_status()
+        page = response.json()
+        events.extend(page["data"])
+        if not page["has_more"]:
+            return events
+        cursor = page["next_cursor"]
+
+
+print(len(list_all_events("src_9fK2mQ7wLx")))
+```
+</CodeGroup>
+
+Fetching many pages quickly can hit the rate limit. See [API rate limits](/api-reference/rate-limits).

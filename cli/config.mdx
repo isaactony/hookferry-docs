@@ -1,0 +1,49 @@
+---
+title: "hookferry config"
+description: "Reference for hookferry config, which reads and changes CLI settings such as the default source and output format."
+---
+
+Reads and changes CLI settings. Settings are saved in `config.toml` in the configuration directory: `~/.config/hookferry` on macOS and Linux, or `%APPDATA%\hookferry` on Windows.
+
+```bash
+hookferry config list
+hookferry config get <key>
+hookferry config set <key> <value>
+hookferry config unset <key>
+```
+
+## Settings
+
+| Key | Values | Default | Description |
+| :-- | :-- | :-- | :-- |
+| `default_source` | A source name | None | The source that `hookferry listen` and `hookferry events` use when you omit `--source`. |
+| `output` | `table`, `json` | `table` | The default output format. `--json` overrides it for one command. |
+| `color` | `auto`, `always`, `never` | `auto` | When to use colored output. |
+| `telemetry` | `true`, `false` | `true` | Whether the CLI sends anonymous usage data, such as command names and error codes. It never sends event bodies, headers, or keys. |
+
+## Examples
+
+Set a default source so you can run `hookferry listen 3000` without `--source`:
+
+```bash
+hookferry config set default_source billing-dev
+```
+
+Turn off telemetry:
+
+```bash
+hookferry config set telemetry false
+```
+
+Show all settings:
+
+```bash
+hookferry config list
+```
+
+```text Output
+default_source = "billing-dev"
+output         = "table"
+color          = "auto"
+telemetry      = false
+```

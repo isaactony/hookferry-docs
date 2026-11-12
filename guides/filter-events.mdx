@@ -1,0 +1,70 @@
+---
+title: "Filter events with route rules"
+description: "Write route filters that match on body fields and headers with exact values, $in, $prefix, and $exists, from the CLI or the API."
+---
+
+A route filter decides which events a route delivers. Use filters to send only the event types your handler supports, or to split one source across several destinations.
+
+## Prerequisites
+
+- A source. See [Sources, routes, and destinations](/concepts/sources-routes-destinations).
+- For the API examples: an API key in the `HOOKFERRY_API_KEY` environment variable. See [API authentication](/api-reference/authentication).
+
+## Filter syntax
+
+A filter is a JSON object. Each key is a path into the event, and each value is the condition for that path.
+
+- Keys start with `body.` for a field in a JSON body or `headers.` for a header. Header names are lowercase.
+- Use dots for nested fields: `body.data.object.status`.
+- An event must match **every** key in the filter.
+
+| Condition | Example | Matches when |
+| :-- | :-- | :-- |
+| Exact value | `"body.type": "invoice.paid"` | The value equals `invoice.paid`. |
+| `$in` | `"body.type": {"$in": ["invoice.paid", "invoice.voided"]}` | The value equals any item in the array. |
+| `$prefix` | `"body.type": {"$prefix": "invoice."}` | The value is a string that starts with `invoice.`. |
+| `$exists` | `"headers.x-test-mode": {"$exists": false}` | The field is present (`true`) or absent (`false`). |
+
+If the body isn't valid JSON, every `body.` condition fails and only `headers.` conditions can match.
+
+## Add a filter to a listen session
+
+Pass the filter to `hookferry listen` with `--filter`. Use single quotes around the JSON so your shell doesn't change it.
+
+```bash
+hookferry listen 3000 --source billing-dev \
+  --filter '{"body.type": {"$prefix": "invoice."}}'
+```
+
+The filter applies to your CLI route for as long as the session runs. Events that don't match show as `filtered` in `hookferry events list` if no other route delivered them.
+
+## Add a filter to an HTTPS route
+
+Create the route with a `filter` in the request body:
+
+```bash
+curl https://api.hookferry.dev/v1/routes \
+  -H "Authorization: Bearer $HOOKFERRY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source_id": "src_9fK2mQ7wLx",
+    "destination_url": "https://staging.example.com/webhooks/billing",
+    "filter": {
+      "body.type": {"$in": ["invoice.paid", "invoice.payment_failed"]},
+      "headers.x-test-mode": {"$exists": false}
+    }
+  }'
+```
+
+To change the filter later, call [Update a route](/api-reference/routes/update-a-route). To remove it, send `"filter": null`. Filter changes apply only to events received after the change.
+
+## Test a filter before you rely on it
+
+1. Start a listen session with the filter.
+2. Send one request that should match and one that shouldn't.
+3. Run `hookferry events list --source billing-dev --limit 2` and check that the second event has the status `filtered`.
+
+## Related pages
+
+- [Update a route](/api-reference/routes/update-a-route)
+- [Fix missing events](/troubleshooting/missing-events)

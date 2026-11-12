@@ -1,0 +1,59 @@
+---
+title: "hookferry replay"
+description: "Reference for hookferry replay, which delivers one or more stored events again by event ID or by a source, status, and time filter."
+---
+
+Delivers stored events again. Each replayed request has the original body, a new `Hookferry-Signature` header, and `Hookferry-Replay: true`.
+
+```bash
+hookferry replay <event_id>... [flags]
+hookferry replay --source <name> [--status <status>] [--since <duration>] [flags]
+hookferry replay status <replay_id>
+```
+
+Pass event IDs to replay specific events, or pass `--source` to replay every event that matches the filters. Don't combine the two forms.
+
+## Flags
+
+| Flag | Description |
+| :-- | :-- |
+| `--route <route_id>` | Replay to this route only. By default, replays go to every active route on the source. |
+| `--source <name>` | Replay events from this source. |
+| `--status <status>` | With `--source`: replay only events with this status. |
+| `--since <duration>` | With `--source`: replay only events received in this period, such as `2h`. |
+| `--yes` | Skip the confirmation prompt. Required when you replay with `--source` in a non-interactive shell. |
+
+A single replay command can replay up to 1,000 events. Hookferry delivers them in the order it originally received them.
+
+<Note>
+  To replay to a CLI destination, start `hookferry listen` on the source first. Otherwise the replayed events become `undelivered` again.
+</Note>
+
+## Examples
+
+Replay one event:
+
+```bash
+hookferry replay evt_5Rb2Kc9tWm
+```
+
+Replay every failed event from the last two hours, without a prompt:
+
+```bash
+hookferry replay --source billing-dev --status failed --since 2h --yes
+```
+
+```text Output
+Replay rpl_7Tn3Wc0bQe queued: 12 events
+```
+
+Check progress:
+
+```bash
+hookferry replay status rpl_7Tn3Wc0bQe
+```
+
+## Related pages
+
+- [Replay failed events](/guides/replay-failed-events)
+- [Retries and replay](/concepts/retries-and-replay)

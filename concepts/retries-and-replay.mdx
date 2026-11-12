@@ -1,0 +1,62 @@
+---
+title: "Retries and replay"
+description: "When Hookferry retries a failed delivery automatically, the full retry schedule for HTTPS destinations, and how replay differs from a retry."
+---
+
+Hookferry delivers an event again in two ways. A **retry** happens automatically after a failed delivery attempt. A **replay** happens only when you ask for one.
+
+## What counts as a failed attempt
+
+A delivery attempt fails if your endpoint:
+
+- Returns any status code outside `200`–`299`, including `3xx` redirects.
+- Doesn't respond within 30 seconds.
+- Refuses the connection or can't be reached.
+
+## Retry schedule for HTTPS destinations
+
+HTTPS destinations get up to 8 delivery attempts: the first attempt plus 7 retries. Times are measured from the previous attempt.
+
+| Attempt | Delay after previous attempt |
+| :-- | :-- |
+| 1 | Immediately |
+| 2 | 1 minute |
+| 3 | 5 minutes |
+| 4 | 30 minutes |
+| 5 | 1 hour |
+| 6 | 3 hours |
+| 7 | 6 hours |
+| 8 | 12 hours |
+
+The last attempt happens about 22 hours and 36 minutes after the first. If attempt 8 fails, the event status becomes `failed` and Hookferry stops retrying.
+
+## CLI destinations aren't retried
+
+A CLI destination gets one attempt per event:
+
+- If no `hookferry listen` session is connected, the event becomes `undelivered`.
+- If the session is connected but your local app fails, the event becomes `failed`.
+
+Local apps restart often during development, so automatic retries would send old events at unexpected times. Replay them when you're ready instead.
+
+## Replay sends a stored event again
+
+A replay delivers a stored event again, using the original body and headers. You can replay any event inside your plan's retention period, whatever its status.
+
+A replay:
+
+- Goes to every active route on the source, or to one route you choose.
+- Gets a new `Hookferry-Signature` and the header `Hookferry-Replay: true`.
+- Creates new delivery attempts. It doesn't change the original attempts.
+- Is not retried automatically, even for HTTPS destinations.
+
+To replay events, see [Replay failed events](/guides/replay-failed-events).
+
+## Make your handler safe to run twice
+
+Retries and replays mean your app can receive the same event more than once. Store the `Hookferry-Event-Id` header value after you process an event, and skip events you've already processed.
+
+## Related pages
+
+- [Events and delivery attempts](/concepts/events-and-attempts)
+- [hookferry replay](/cli/replay)

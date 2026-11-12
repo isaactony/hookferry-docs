@@ -1,0 +1,774 @@
+openapi: 3.1.0
+info:
+  title: Hookferry Cloud API
+  version: "1.0"
+  description: >-
+    The Hookferry Cloud API manages sources, routes, events, and replays.
+    The `hookferry` CLI uses the same API. All requests use HTTPS and
+    return JSON.
+servers:
+  - url: https://api.hookferry.dev/v1
+    description: Production
+security:
+  - bearerAuth: []
+tags:
+  - name: Sources
+    description: Public endpoints that receive webhooks from providers.
+  - name: Routes
+    description: Rules that connect a source to a destination.
+  - name: Events
+    description: Webhook requests that Hookferry received and stored.
+  - name: Replays
+    description: Requests to deliver stored events again.
+
+paths:
+  /sources:
+    get:
+      operationId: listSources
+      summary: List sources
+      description: Returns the sources in your workspace, newest first.
+      tags: [Sources]
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: A page of sources.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+    post:
+      operationId: createSource
+      summary: Create a source
+      description: >-
+        Creates a source and returns its public URL. Give the source URL to
+        the webhook provider as the webhook endpoint.
+      tags: [Sources]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  description: >-
+                    A unique name in your workspace. Use lowercase letters,
+                    numbers, and hyphens, 3 to 48 characters.
+                  pattern: "^[a-z0-9-]{3,48}$"
+                  example: billing-dev
+                ephemeral:
+                  type: boolean
+                  default: false
+                  description: >-
+                    If `true`, Hookferry deletes the source and its events 24
+                    hours after creation. Use for CI runs.
+      responses:
+        "201":
+          description: The source was created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Source"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: A source with this name already exists.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error:
+                  type: invalid_request_error
+                  code: source_name_taken
+                  message: A source named billing-dev already exists.
+                  doc_url: https://docs.hookferry.dev/api-reference/errors#source_name_taken
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /sources/{source_id}:
+    parameters:
+      - name: source_id
+        in: path
+        required: true
+        description: The source ID, which starts with `src_`.
+        schema:
+          type: string
+          example: src_9fK2mQ7wLx
+    get:
+      operationId: getSource
+      summary: Get a source
+      description: Returns one source.
+      tags: [Sources]
+      responses:
+        "200":
+          description: The source.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Source"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteSource
+      summary: Delete a source
+      description: >-
+        Deletes a source, its routes, and its stored events. The source URL
+        stops accepting requests immediately and returns `410 Gone` to
+        providers. You can't undo this.
+      tags: [Sources]
+      responses:
+        "204":
+          description: The source was deleted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /routes:
+    get:
+      operationId: listRoutes
+      summary: List routes
+      description: Returns the routes in your workspace. Filter by source with `source_id`.
+      tags: [Routes]
+      parameters:
+        - name: source_id
+          in: query
+          required: false
+          description: Return only routes for this source.
+          schema:
+            type: string
+            example: src_9fK2mQ7wLx
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: A page of routes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RouteList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createRoute
+      summary: Create a route
+      description: >-
+        Creates a route from a source to an HTTPS destination. The response
+        includes the destination's signing secret. Routes to a CLI session
+        are created by `hookferry listen` and can't be created with this
+        endpoint.
+      tags: [Routes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [source_id, destination_url]
+              properties:
+                source_id:
+                  type: string
+                  example: src_9fK2mQ7wLx
+                destination_url:
+                  type: string
+                  format: uri
+                  description: An HTTPS URL. Hookferry rejects `http://` URLs for HTTPS destinations.
+                  example: https://staging.example.com/webhooks/billing
+                filter:
+                  $ref: "#/components/schemas/Filter"
+      responses:
+        "201":
+          description: The route was created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Route"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /routes/{route_id}:
+    parameters:
+      - name: route_id
+        in: path
+        required: true
+        description: The route ID, which starts with `rte_`.
+        schema:
+          type: string
+          example: rte_4Hs8PzQ1aa
+    patch:
+      operationId: updateRoute
+      summary: Update a route
+      description: >-
+        Updates a route's filter or pauses it. Changes apply to events
+        received after the update. Set `filter` to `null` to remove the filter.
+      tags: [Routes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filter:
+                  oneOf:
+                    - $ref: "#/components/schemas/Filter"
+                    - type: "null"
+                paused:
+                  type: boolean
+                  description: If `true`, the route stops delivering. Events still get stored.
+      responses:
+        "200":
+          description: The updated route.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Route"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /events:
+    get:
+      operationId: listEvents
+      summary: List events
+      description: Returns stored events, newest first, within your plan's retention period.
+      tags: [Events]
+      parameters:
+        - name: source_id
+          in: query
+          description: Return only events received by this source.
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Return only events with this status.
+          schema:
+            $ref: "#/components/schemas/EventStatus"
+        - name: created_after
+          in: query
+          description: Return only events received after this time (RFC 3339).
+          schema:
+            type: string
+            format: date-time
+            example: "2026-11-01T00:00:00Z"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: A page of events.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /events/{event_id}:
+    parameters:
+      - $ref: "#/components/parameters/EventId"
+    get:
+      operationId: getEvent
+      summary: Get an event
+      description: Returns one event, including the original headers and body.
+      tags: [Events]
+      responses:
+        "200":
+          description: The event.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /events/{event_id}/attempts:
+    parameters:
+      - $ref: "#/components/parameters/EventId"
+    get:
+      operationId: listAttempts
+      summary: List delivery attempts
+      description: Returns every delivery attempt for an event, oldest first.
+      tags: [Events]
+      responses:
+        "200":
+          description: The delivery attempts.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Attempt"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /events/{event_id}/replay:
+    parameters:
+      - $ref: "#/components/parameters/EventId"
+    post:
+      operationId: replayEvent
+      summary: Replay an event
+      description: >-
+        Delivers a stored event again to every active route on its source,
+        or to one route if you set `route_id`. The replayed request has the
+        original body, a new `Hookferry-Signature` header, and a
+        `Hookferry-Replay: true` header.
+      tags: [Replays]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                route_id:
+                  type: string
+                  description: Replay to this route only.
+                  example: rte_4Hs8PzQ1aa
+      responses:
+        "202":
+          description: The replay was accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Replay"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "410":
+          description: The event is older than your retention period and its body was deleted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error:
+                  type: invalid_request_error
+                  code: event_expired
+                  message: Event evt_2Lq0 is past the 3-day retention period.
+                  doc_url: https://docs.hookferry.dev/api-reference/errors#event_expired
+
+  /replays:
+    post:
+      operationId: createBulkReplay
+      summary: Replay events in bulk
+      description: >-
+        Replays up to 1,000 events that match a query. Hookferry delivers them
+        in the order they were originally received.
+      tags: [Replays]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [source_id]
+              properties:
+                source_id:
+                  type: string
+                  example: src_9fK2mQ7wLx
+                status:
+                  $ref: "#/components/schemas/EventStatus"
+                created_after:
+                  type: string
+                  format: date-time
+                created_before:
+                  type: string
+                  format: date-time
+      responses:
+        "202":
+          description: The bulk replay was accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Replay"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /replays/{replay_id}:
+    parameters:
+      - name: replay_id
+        in: path
+        required: true
+        description: The replay ID, which starts with `rpl_`.
+        schema:
+          type: string
+          example: rpl_7Tn3Wc0bQe
+    get:
+      operationId: getReplay
+      summary: Get a replay
+      description: Returns a replay and its progress.
+      tags: [Replays]
+      responses:
+        "200":
+          description: The replay.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Replay"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: >-
+        An API key from the dashboard. Keys start with `hf_live_` or
+        `hf_test_`. Send it as `Authorization: Bearer <key>`.
+
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      description: Number of items to return, from 1 to 100.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Cursor:
+      name: cursor
+      in: query
+      description: The `next_cursor` value from the previous page. Omit it for the first page.
+      schema:
+        type: string
+    EventId:
+      name: event_id
+      in: path
+      required: true
+      description: The event ID, which starts with `evt_`.
+      schema:
+        type: string
+        example: evt_2Lq0Vb8sNd
+
+  responses:
+    BadRequest:
+      description: The request body or parameters are invalid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              type: invalid_request_error
+              code: parameter_invalid
+              message: "destination_url must use https."
+              doc_url: https://docs.hookferry.dev/api-reference/errors#parameter_invalid
+    Unauthorized:
+      description: The API key is missing, malformed, or revoked.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              type: authentication_error
+              code: api_key_invalid
+              message: The API key is invalid or has been revoked.
+              doc_url: https://docs.hookferry.dev/api-reference/errors#api_key_invalid
+    NotFound:
+      description: The object doesn't exist in your workspace.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              type: invalid_request_error
+              code: resource_missing
+              message: No such event evt_2Lq0Vb8sNd.
+              doc_url: https://docs.hookferry.dev/api-reference/errors#resource_missing
+    RateLimited:
+      description: You sent more than 100 requests in 10 seconds with one API key.
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              type: rate_limit_error
+              code: rate_limited
+              message: Too many requests. Retry after 4 seconds.
+              doc_url: https://docs.hookferry.dev/api-reference/rate-limits
+
+  schemas:
+    Source:
+      type: object
+      required: [id, name, url, ephemeral, created_at]
+      properties:
+        id:
+          type: string
+          example: src_9fK2mQ7wLx
+        name:
+          type: string
+          example: billing-dev
+        url:
+          type: string
+          format: uri
+          description: The public URL that providers send webhooks to.
+          example: https://in.hookferry.dev/src_9fK2mQ7wLx
+        ephemeral:
+          type: boolean
+          example: false
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-11-02T09:15:04Z"
+
+    Filter:
+      type: object
+      description: >-
+        Conditions an event must match to be delivered on this route. Keys are
+        dot paths that start with `body.` or `headers.` (header names are
+        lowercase). A value is either an exact match or an object with one
+        operator: `$in` (array of values), `$prefix` (string), or `$exists`
+        (boolean). All conditions must match.
+      additionalProperties: true
+      example:
+        body.type:
+          $in: [invoice.paid, invoice.payment_failed]
+        headers.x-provider-env:
+          live
+
+    Route:
+      type: object
+      required: [id, source_id, destination, paused, created_at]
+      properties:
+        id:
+          type: string
+          example: rte_4Hs8PzQ1aa
+        source_id:
+          type: string
+          example: src_9fK2mQ7wLx
+        destination:
+          $ref: "#/components/schemas/Destination"
+        filter:
+          oneOf:
+            - $ref: "#/components/schemas/Filter"
+            - type: "null"
+        paused:
+          type: boolean
+          example: false
+        signing_secret:
+          type: string
+          description: >-
+            The destination's signing secret, which starts with `whsec_`.
+            Returned only when the route is created.
+          example: whsec_3c1b7f0e9a5d4c2b8e6f
+        created_at:
+          type: string
+          format: date-time
+
+    Destination:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [cli, https]
+          description: "`cli` forwards to a running `hookferry listen` session. `https` delivers to a public URL."
+        url:
+          type: string
+          description: For `https` destinations, the delivery URL. For `cli` destinations, the local URL the CLI forwards to.
+          example: https://staging.example.com/webhooks/billing
+
+    EventStatus:
+      type: string
+      enum: [pending, delivered, failed, undelivered, filtered]
+      description: >-
+        `pending`: a delivery attempt is scheduled. `delivered`: every
+        matching route returned a 2xx response. `failed`: at least one route
+        used all its attempts without a 2xx response. `undelivered`: the only
+        matching route is a CLI route and no `hookferry listen` session was
+        connected. `filtered`: no route's filter matched.
+
+    Event:
+      type: object
+      required: [id, source_id, status, method, headers, created_at]
+      properties:
+        id:
+          type: string
+          example: evt_2Lq0Vb8sNd
+        source_id:
+          type: string
+          example: src_9fK2mQ7wLx
+        status:
+          $ref: "#/components/schemas/EventStatus"
+        method:
+          type: string
+          example: POST
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            content-type: application/json
+            x-provider-signature: t=1762075200,v1=5f2b...
+        body:
+          type: [string, "null"]
+          description: The raw request body, exactly as received. `null` after the retention period ends.
+          example: '{"type":"invoice.paid","id":"inv_1042"}'
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-11-02T09:20:11Z"
+
+    Attempt:
+      type: object
+      required: [id, event_id, route_id, number, outcome, created_at]
+      properties:
+        id:
+          type: string
+          example: att_6Gx1Rm2kPp
+        event_id:
+          type: string
+          example: evt_2Lq0Vb8sNd
+        route_id:
+          type: string
+          example: rte_4Hs8PzQ1aa
+        number:
+          type: integer
+          description: 1 for the first attempt, up to 8 for HTTPS routes.
+          example: 1
+        outcome:
+          type: string
+          enum: [succeeded, failed]
+        response_status:
+          type: [integer, "null"]
+          description: The HTTP status your endpoint returned, or `null` if no response arrived.
+          example: 500
+        error:
+          type: [string, "null"]
+          description: A network error, such as `timeout` or `connection_refused`.
+          example: null
+        duration_ms:
+          type: integer
+          example: 182
+        next_attempt_at:
+          type: [string, "null"]
+          format: date-time
+          description: When Hookferry tries again, or `null` if no retry is scheduled.
+        created_at:
+          type: string
+          format: date-time
+
+    Replay:
+      type: object
+      required: [id, status, event_count, created_at]
+      properties:
+        id:
+          type: string
+          example: rpl_7Tn3Wc0bQe
+        status:
+          type: string
+          enum: [queued, running, completed]
+        event_count:
+          type: integer
+          example: 12
+        delivered_count:
+          type: integer
+          example: 0
+        created_at:
+          type: string
+          format: date-time
+
+    ListMeta:
+      type: object
+      required: [has_more, next_cursor]
+      properties:
+        has_more:
+          type: boolean
+          example: true
+        next_cursor:
+          type: [string, "null"]
+          example: c_eyJpZCI6ImV2dF8yTHEwIn0
+
+    SourceList:
+      allOf:
+        - $ref: "#/components/schemas/ListMeta"
+        - type: object
+          required: [data]
+          properties:
+            data:
+              type: array
+              items:
+                $ref: "#/components/schemas/Source"
+    RouteList:
+      allOf:
+        - $ref: "#/components/schemas/ListMeta"
+        - type: object
+          required: [data]
+          properties:
+            data:
+              type: array
+              items:
+                $ref: "#/components/schemas/Route"
+    EventList:
+      allOf:
+        - $ref: "#/components/schemas/ListMeta"
+        - type: object
+          required: [data]
+          properties:
+            data:
+              type: array
+              items:
+                $ref: "#/components/schemas/Event"
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [type, code, message]
+          properties:
+            type:
+              type: string
+              enum: [authentication_error, invalid_request_error, rate_limit_error, api_error]
+            code:
+              type: string
+              example: resource_missing
+            message:
+              type: string
+            doc_url:
+              type: string
+              format: uri

@@ -1,0 +1,71 @@
+---
+title: "API errors"
+description: "The Hookferry Cloud API error format, every error type, and the error codes you can handle in code, with causes and fixes."
+---
+
+When a request fails, the API returns a `4xx` or `5xx` status and a JSON body with an `error` object.
+
+```json Example error
+{
+  "error": {
+    "type": "invalid_request_error",
+    "code": "resource_missing",
+    "message": "No such event evt_2Lq0Vb8sNd.",
+    "doc_url": "https://docs.hookferry.dev/api-reference/errors#resource_missing"
+  }
+}
+```
+
+| Field | Description |
+| :-- | :-- |
+| `type` | The error category. See [Error types](#error-types). |
+| `code` | A stable, machine-readable code. Handle errors by `code`, not by `message`. |
+| `message` | A human-readable explanation. The wording can change. |
+| `doc_url` | A link to the code's entry on this page. |
+
+## Error types
+
+| Type | HTTP status | Meaning |
+| :-- | :-- | :-- |
+| `authentication_error` | `401` | The API key is missing, malformed, or revoked. |
+| `invalid_request_error` | `400`, `404`, `409`, `410` | The request is wrong. Don't retry it without changing it. |
+| `rate_limit_error` | `429` | Too many requests. Retry after the `Retry-After` header. |
+| `api_error` | `500`, `503` | A problem on Hookferry's side. Retry with exponential backoff. |
+
+## Error codes
+
+### api_key_invalid
+
+**Status:** `401`. The `Authorization` header is missing, isn't in the form `Bearer <key>`, or the key was revoked. See [API authentication](/api-reference/authentication).
+
+### parameter_invalid
+
+**Status:** `400`. A parameter has the wrong type or format. The `message` names the parameter. A common cause is a `destination_url` that uses `http://` instead of `https://`.
+
+### parameter_missing
+
+**Status:** `400`. A required parameter is missing, such as `source_id` on [Create a route](/api-reference/routes/create-a-route).
+
+### filter_invalid
+
+**Status:** `400`. A route filter key doesn't start with `body.` or `headers.`, or uses an unknown operator. See [Filter events with route rules](/guides/filter-events).
+
+### resource_missing
+
+**Status:** `404`. No object with this ID exists in the workspace that owns the API key.
+
+### source_name_taken
+
+**Status:** `409`. A source with this name already exists. Choose another name, or get the existing source with [List sources](/api-reference/sources/list-sources).
+
+### event_expired
+
+**Status:** `410`. The event is older than your plan's retention period, so its body was deleted and it can't be replayed.
+
+### rate_limited
+
+**Status:** `429`. See [API rate limits](/api-reference/rate-limits).
+
+### internal_error
+
+**Status:** `500` or `503`. Retry with exponential backoff. If the error continues, check [status.hookferry.dev](https://status.hookferry.dev).

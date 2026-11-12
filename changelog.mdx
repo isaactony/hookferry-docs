@@ -1,0 +1,43 @@
+---
+title: "Hookferry changelog"
+description: "New features, changes, and fixes in each release of the Hookferry CLI and Cloud API, newest first."
+---
+
+<Update label="CLI 2.4.0" description="October 28, 2026">
+  ## Added
+
+  - `hookferry listen --ephemeral` creates an ephemeral source that Hookferry deletes after 24 hours. See [Use Hookferry in CI](/guides/use-hookferry-in-ci).
+  - `hookferry replay status <replay_id>` shows the progress of a replay.
+
+  ## Changed
+
+  - `hookferry listen --json` now prints a `session` object as the first line, including `source_url` and `signing_secret`.
+</Update>
+
+<Update label="API 2026-10" description="October 14, 2026">
+  ## Added
+
+  - Route filters support the `$exists` operator. See [Filter events with route rules](/guides/filter-events).
+  - [Replay events in bulk](/api-reference/replays/replay-events-in-bulk) accepts `created_before`.
+</Update>
+
+<Update label="CLI 2.3.0" description="September 9, 2026">
+  ## Added
+
+  - `hookferry listen` accepts a full URL as the target, such as `http://127.0.0.1:3000`. See [Fix "connection refused" when forwarding to localhost](/troubleshooting/connection-refused).
+  - `--header` flag on `hookferry listen` adds headers to forwarded requests.
+
+  ## Fixed
+
+  - `hookferry events get --body` no longer adds a trailing newline to the body.
+</Update>
+
+<Update label="CLI 2.2.0" description="July 22, 2026">
+  ## Added
+
+  - Windows install with Scoop.
+
+  ## Changed
+
+  - The CLI reads `HTTPS_PROXY` and `NO_PROXY`.
+</Update>

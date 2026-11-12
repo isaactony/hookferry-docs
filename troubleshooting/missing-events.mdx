@@ -1,0 +1,43 @@
+---
+title: "Fix missing events"
+description: "Find out why a webhook never reached your app by checking whether Hookferry received it and what status it got."
+---
+
+A provider says it sent a webhook, but your app never received it. Start by finding out whether Hookferry received the event.
+
+```bash
+hookferry events list --source billing-dev --since 1h
+```
+
+## The event isn't in the list
+
+Hookferry never received the request. Check these causes:
+
+| Cause | How to check | Fix |
+| :-- | :-- | :-- |
+| The provider uses a different URL | Compare the endpoint URL in the provider's settings with the **Source URL** from `hookferry listen` | Update the URL in the provider's settings |
+| The provider is still retrying | Check the provider's webhook delivery log | Wait, or trigger the event again |
+| The body is larger than 1 MB | The provider's log shows `413 Payload Too Large` | Reduce the payload, or ask the provider for a smaller event type |
+| The source was deleted | The provider's log shows `410 Gone` | Create a new source and update the provider |
+| You're looking at the wrong source | Run `hookferry events list` without `--source` | Use the correct source name |
+
+## The event is in the list
+
+The status tells you what happened:
+
+| Status | Meaning | Fix |
+| :-- | :-- | :-- |
+| `undelivered` | No `hookferry listen` session was running. | Start the session, then [replay the events](/guides/replay-failed-events). |
+| `filtered` | No route's filter matched the event. | Check the filter. See [Filter events with route rules](/guides/filter-events). |
+| `failed` | Your app returned a non-`2xx` status or couldn't be reached. | Run `hookferry events get <event_id> --attempts` to see the error, fix it, then replay. |
+| `pending` | An HTTPS route is waiting to retry. | Check `next_attempt_at` on the latest attempt, or replay now. |
+| `delivered` | Your app returned `2xx`. | Check your app's logs. It received the request. |
+
+## The event is older than the retention period
+
+`hookferry events list` only shows events inside your plan's retention period: 3 days on Free and 30 days on Team. Older events can't be listed or replayed.
+
+## Related pages
+
+- [Events and delivery attempts](/concepts/events-and-attempts)
+- [Fix "connection refused" when forwarding to localhost](/troubleshooting/connection-refused)

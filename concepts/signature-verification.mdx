@@ -1,0 +1,58 @@
+---
+title: "How Hookferry signs requests"
+description: "How the Hookferry-Signature header is built with HMAC-SHA256, what the signed payload contains, and why you must verify the raw body."
+---
+
+Hookferry signs every request it delivers, so your app can confirm the request came from Hookferry and wasn't changed. For code that checks the signature, see [Verify webhook signatures in Node.js and Python](/guides/verify-signatures).
+
+## The Hookferry-Signature header
+
+```text
+Hookferry-Signature: t=1762075211,v1=9a1f0c6e4b3d2a1f8e7c6b5a4d3c2b1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c
+```
+
+| Part | Meaning |
+| :-- | :-- |
+| `t` | The Unix time, in seconds, when Hookferry sent this attempt. |
+| `v1` | A hex-encoded HMAC-SHA256 signature. |
+
+Each retry and each replay gets a new `t` value and a new signature.
+
+## How the signature is computed
+
+1. Hookferry builds the **signed payload**: the `t` value, a period (`.`), and the raw request body.
+
+   ```text
+   1762075211.{"type":"invoice.paid","id":"inv_1042"}
+   ```
+
+2. Hookferry computes an HMAC-SHA256 of the signed payload. The key is the destination's full signing secret, including the `whsec_` prefix.
+3. Hookferry hex-encodes the result and sends it as `v1`.
+
+To verify, your app repeats these steps with its copy of the signing secret and compares the result to `v1` with a constant-time comparison.
+
+## Rules for correct verification
+
+- **Use the raw body.** Compute the signature over the bytes you received, before any JSON parsing. Parsing and serializing JSON again changes whitespace and key order, and the signature no longer matches.
+- **Use the right secret.** Each destination has its own signing secret. A secret from one route doesn't verify requests from another.
+- **Check the timestamp.** Reject requests where `t` is more than 300 seconds from your server's clock. This blocks replay attacks.
+
+## Where to find the signing secret
+
+| Destination type | Where the secret appears |
+| :-- | :-- |
+| CLI | `hookferry listen` prints it on start. It stays the same each time you listen on the same source with the same account. |
+| HTTPS | The [Create a route](/api-reference/routes/create-a-route) response, or the route's page in the dashboard. |
+
+<Warning>
+  Treat signing secrets like passwords. Store them in environment variables or a secrets manager, not in source control.
+</Warning>
+
+## Provider signatures still work
+
+Hookferry doesn't change the body or remove headers, so the provider's own signature header still arrives. You can verify the provider's signature, the Hookferry signature, or both.
+
+## Related pages
+
+- [Fix signature verification errors](/troubleshooting/signature-errors)
+- [Sources, routes, and destinations](/concepts/sources-routes-destinations)

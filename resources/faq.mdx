@@ -1,0 +1,61 @@
+---
+title: "Hookferry FAQ"
+description: "Short answers to common questions about Hookferry plans, source URLs, firewalls, teammates, data storage, and payload changes."
+---
+
+<AccordionGroup>
+  <Accordion title="What's the difference between the Free and Team plans?">
+    | | Free | Team |
+    | :-- | :-- | :-- |
+    | Sources | Up to 3 | Unlimited |
+    | Retention period | 3 days | 30 days |
+    | Workspace members | 1 | Unlimited |
+    | HTTPS destinations | Yes | Yes |
+
+    Ephemeral sources don't count toward the Free plan's source limit.
+  </Accordion>
+
+  <Accordion title="Does my source URL change when I restart hookferry listen?">
+    No. The source URL belongs to the source, not the session. As long as you pass the same `--source` name, the URL stays the same, so you register it with your provider once.
+  </Accordion>
+
+  <Accordion title="Do I need to open a port or change my firewall?">
+    No. `hookferry listen` makes an outbound HTTPS connection on port 443 to Hookferry and receives events over it. Nothing connects to your machine from the internet.
+
+    If your network requires a proxy, set `HTTPS_PROXY`. See [CLI global flags, environment variables, and exit codes](/cli/global-options#use-a-proxy).
+  </Accordion>
+
+  <Accordion title="Can my teammates and I listen to the same source?">
+    Yes. Each person who runs `hookferry listen` on a source gets their own CLI route, so everyone receives every event. Teammates need to be members of the same workspace, which requires the Team plan.
+
+    If you start two sessions on the same source with the same account, only the newest session receives events.
+  </Accordion>
+
+  <Accordion title="Does Hookferry change the webhook body or headers?">
+    Hookferry never changes the body. It forwards all original headers and adds `Hookferry-Event-Id`, `Hookferry-Attempt`, `Hookferry-Signature`, and, for replays, `Hookferry-Replay`. Because the body is unchanged, the provider's own signature still verifies.
+  </Accordion>
+
+  <Accordion title="Why didn't Hookferry retry my event?">
+    Hookferry doesn't retry events for CLI destinations. It retries only HTTPS destinations, up to 8 delivery attempts (the first attempt plus 7 retries) over about 22 hours 36 minutes. To deliver an event to a CLI destination again, replay it. See [Retries and replay](/concepts/retries-and-replay).
+  </Accordion>
+
+  <Accordion title="How long does Hookferry keep my events?">
+    3 days on the Free plan and 30 days on the Team plan. After that, the event is deleted: it no longer appears in event lists and can't be replayed. See [Events and delivery attempts](/concepts/events-and-attempts#how-long-events-are-stored).
+  </Accordion>
+
+  <Accordion title="Is there a size limit for webhooks?">
+    Yes. A source accepts bodies up to 1 MB. Larger requests get `413 Payload Too Large`, and Hookferry doesn't store them.
+  </Accordion>
+
+  <Accordion title="Can I use Hookferry in production?">
+    Hookferry is built for development, testing, and staging. Its HTTPS destinations retry reliably, but it has no uptime commitment for production traffic. Point production webhooks directly at your production servers.
+  </Accordion>
+
+  <Accordion title="How do I delete or rename a source?">
+    The `hookferry` CLI doesn't have a command to delete or rename a source. Delete a source in the dashboard or with the [Delete a source](/api-reference/sources/delete-a-source) API endpoint. Sources can't be renamed. Create a new source instead. See [Delete or rename a source](/concepts/sources-routes-destinations#delete-or-rename-a-source).
+  </Accordion>
+
+  <Accordion title="Can I use my own domain for source URLs?">
+    No. Source URLs always use `in.hookferry.dev`.
+  </Accordion>
+</AccordionGroup>

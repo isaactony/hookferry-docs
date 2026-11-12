@@ -1,0 +1,48 @@
+---
+title: "API rate limits"
+description: "The Hookferry Cloud API allows 100 requests per 10 seconds per API key; handle 429 responses by waiting for the Retry-After header."
+---
+
+The Hookferry Cloud API allows **100 requests per 10 seconds for each API key**. The window is sliding: Hookferry counts the requests in the 10 seconds before each new request. The limit applies to the API only. Webhooks that providers send to source URLs don't count toward it.
+
+## When you exceed the limit
+
+The API returns `429 Too Many Requests` with a `Retry-After` header that gives the number of seconds to wait, as a whole number:
+
+```http
+HTTP/1.1 429 Too Many Requests
+Retry-After: 4
+Content-Type: application/json
+
+{"error":{"type":"rate_limit_error","code":"rate_limited","message":"Too many requests. Retry after 4 seconds.","doc_url":"https://docs.hookferry.dev/api-reference/rate-limits"}}
+```
+
+## Retry after a 429 response
+
+Wait for the number of seconds in `Retry-After`, then send the request again.
+
+```javascript Node.js
+async function hookferryRequest(url, options = {}, maxRetries = 3) {
+  for (let attempt = 0; ; attempt++) {
+    const response = await fetch(url, {
+      ...options,
+      headers: { Authorization: `Bearer ${process.env.HOOKFERRY_API_KEY}`, ...options.headers },
+    });
+    if (response.status !== 429 || attempt >= maxRetries) return response;
+    const waitSeconds = Number(response.headers.get("Retry-After") ?? 1);
+    await new Promise((resolve) => setTimeout(resolve, waitSeconds * 1000));
+  }
+}
+
+hookferryRequest("https://api.hookferry.dev/v1/sources")
+  .then((response) => response.json())
+  .then((body) => console.log(body));
+```
+
+## Stay under the limit
+
+- Use `limit=100` on list endpoints to fetch more items per request. See [API pagination](/api-reference/pagination).
+- Use [Replay events in bulk](/api-reference/replays/replay-events-in-bulk) instead of replaying events one at a time.
+- Give each service its own API key. The limit applies per key.
+
+The `hookferry` CLI handles `429` responses automatically.

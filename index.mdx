@@ -1,0 +1,48 @@
+---
+title: "What Hookferry does"
+description: "Hookferry gives you a public URL for webhooks and forwards each request to your local app, so you can build and test webhook handlers without deploying."
+---
+
+Hookferry is a command-line tool and REST API for working with webhooks. It receives webhooks from any provider at a public URL, stores each request, and forwards it to an app running on your machine or to an HTTPS endpoint you choose.
+
+Use Hookferry when you need to:
+
+- Receive webhooks on `localhost` while you develop a handler.
+- See the exact headers and body a provider sent.
+- Send a stored webhook to your app again after you fix a bug.
+- Receive real webhooks in CI test runs.
+
+## How a webhook moves through Hookferry
+
+1. A provider sends an HTTP request to your **source URL**, for example `https://in.hookferry.dev/src_9fK2mQ7wLx`.
+2. Hookferry stores the request as an **event** and returns `200 OK` to the provider.
+3. Hookferry checks each **route** on the source. A route that matches delivers the event to its **destination**: a running `hookferry listen` session or an HTTPS URL.
+4. Your app receives the original body and headers, plus a `Hookferry-Signature` header that proves the request came from Hookferry.
+
+For definitions of these terms, see [Sources, routes, and destinations](/concepts/sources-routes-destinations) and the [glossary](/resources/glossary).
+
+## Two ways to use Hookferry
+
+| Interface | Use it for | Start here |
+| :-- | :-- | :-- |
+| `hookferry` CLI | Local development, inspecting events, replaying events, CI jobs | [Quickstart](/quickstart) |
+| Hookferry Cloud API | Automating sources and routes, building internal tools | [API authentication](/api-reference/authentication) |
+
+The CLI calls the Cloud API, so anything you create with one appears in the other.
+
+## Start building
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Forward your first webhook to `localhost` in about five minutes.
+  </Card>
+  <Card title="Install the CLI" icon="download" href="/installation">
+    Install with Homebrew, npm, or a shell script.
+  </Card>
+  <Card title="Verify signatures" icon="shield-check" href="/guides/verify-signatures">
+    Check that each request came from Hookferry.
+  </Card>
+  <Card title="Use Hookferry with AI tools" icon="bot" href="/ai-tools">
+    Connect these docs to your coding agent.
+  </Card>
+</CardGroup>

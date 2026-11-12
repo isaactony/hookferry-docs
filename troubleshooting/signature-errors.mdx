@@ -1,0 +1,59 @@
+---
+title: "Fix signature verification errors"
+description: "Find and fix the cause when your webhook handler rejects Hookferry requests with 401 because the Hookferry-Signature check fails."
+---
+
+Your handler returns `401` and the listen session shows `→ 401 Unauthorized` for every event. Work through these causes in order. The first one causes most failures.
+
+## The body was parsed before verification
+
+**Symptom:** Every request fails, including ones you send yourself with `curl`.
+
+**Cause:** Middleware such as `express.json()` or `request.get_json()` parsed the body before your verification code ran. Your code then signs a re-serialized string, which differs from the bytes Hookferry signed.
+
+**Fix:** Read the raw body on the webhook route. In Express, use `express.raw({ type: "*/*" })` on that route. In Flask, call `request.get_data()` before anything else. See the complete examples in [Verify webhook signatures in Node.js and Python](/guides/verify-signatures).
+
+## The signing secret is for a different destination
+
+**Symptom:** Every request fails, and you recently changed sources, accounts, or routes.
+
+**Cause:** Each destination has its own signing secret. A secret copied from another source, another teammate's session, or an HTTPS route doesn't match.
+
+**Fix:** Restart `hookferry listen` and copy the **Secret** value it prints. For an HTTPS route, copy the secret from the route's page in the dashboard. Then restart your app so it reads the new value.
+
+## The server clock is wrong
+
+**Symptom:** Requests fail even though the secret and raw body are correct. Failures started after a machine or container restart.
+
+**Cause:** Your verification code rejects requests where the `t` timestamp is more than 300 seconds from the server's clock.
+
+**Fix:** Turn on automatic time sync (NTP) on the machine or container. To confirm the clock is the cause, compare `date -u` with an accurate time source.
+
+## You're verifying the provider's signature with the Hookferry secret
+
+**Symptom:** Your code reads a header such as `X-Provider-Signature` instead of `Hookferry-Signature`.
+
+**Cause:** Hookferry forwards the provider's original signature header unchanged. That header must be verified with the provider's secret, not the `whsec_` secret.
+
+**Fix:** Verify `Hookferry-Signature` with the Hookferry secret, and verify the provider's header with the provider's secret.
+
+## Still failing
+
+Print the values your code uses, then compare them with what Hookferry sent:
+
+```bash
+hookferry events get evt_2Lq0Vb8sNd --body > body.json
+```
+
+Compute the expected signature for that body with the `t` value from the request:
+
+```bash
+printf '%s.%s' 1762075211 "$(cat body.json)" \
+  | openssl dgst -sha256 -hmac "$HOOKFERRY_SIGNING_SECRET" -hex
+```
+
+If this value matches `v1` but your code's value doesn't, your code is changing the body or using a different secret.
+
+## Related pages
+
+- [How Hookferry signs requests](/concepts/signature-verification)

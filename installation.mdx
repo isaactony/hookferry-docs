@@ -1,0 +1,86 @@
+---
+title: "Install the Hookferry CLI"
+description: "Install the hookferry command on macOS, Linux, or Windows with Homebrew, npm, Scoop, or the install script, then check the version."
+---
+
+The `hookferry` CLI is a single binary. The current version is 2.4.0.
+
+## Prerequisites
+
+- macOS 12 or later, a 64-bit Linux distribution with glibc 2.31 or later, or Windows 10 or later.
+- For the npm method only: Node.js 18 or later.
+
+## Install the CLI
+
+<Tabs>
+  <Tab title="macOS">
+    Install with Homebrew:
+
+    ```bash
+    brew install hookferry/tap/hookferry
+    ```
+
+    To upgrade later, run `brew upgrade hookferry`.
+  </Tab>
+  <Tab title="Linux">
+    Run the install script. It downloads the binary for your CPU architecture to `/usr/local/bin`.
+
+    ```bash
+    curl -fsSL https://get.hookferry.dev/install.sh | sh
+    ```
+
+    To install to a different directory, set `HOOKFERRY_INSTALL_DIR`:
+
+    ```bash
+    curl -fsSL https://get.hookferry.dev/install.sh | HOOKFERRY_INSTALL_DIR="$HOME/.local/bin" sh
+    ```
+  </Tab>
+  <Tab title="Windows">
+    Install with Scoop in PowerShell:
+
+    ```powershell
+    scoop bucket add hookferry https://github.com/hookferry/scoop-bucket
+    scoop install hookferry
+    ```
+  </Tab>
+  <Tab title="npm (any OS)">
+    Install the npm package globally. This method needs Node.js 18 or later.
+
+    ```bash
+    npm install --global @hookferry/cli
+    ```
+  </Tab>
+</Tabs>
+
+## Check the installation
+
+```bash
+hookferry --version
+```
+
+```text Output
+hookferry 2.4.0
+```
+
+If your shell prints `command not found`, the install directory isn't on your `PATH`. Add it, then open a new terminal.
+
+## Sign in after installing
+
+The CLI needs credentials before it can create sources or forward events. Choose one method:
+
+- **Interactive:** run `hookferry login`. See [hookferry login](/cli/login).
+- **Non-interactive (CI, containers):** set the `HOOKFERRY_API_KEY` environment variable. See [Use Hookferry in CI](/guides/use-hookferry-in-ci).
+
+## Uninstall the CLI
+
+Remove the binary with the same tool you used to install it, for example `brew uninstall hookferry` or `npm uninstall --global @hookferry/cli`. Then delete the configuration directory:
+
+<CodeGroup>
+```bash macOS and Linux
+rm -rf ~/.config/hookferry
+```
+
+```powershell Windows
+Remove-Item -Recurse -Force "$env:APPDATA\hookferry"
+```
+</CodeGroup>

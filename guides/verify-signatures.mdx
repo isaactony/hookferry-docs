@@ -1,0 +1,149 @@
+---
+title: "Verify webhook signatures in Node.js and Python"
+description: "Complete Express and Flask examples that verify the Hookferry-Signature header with HMAC-SHA256, the raw request body, and a 300-second tolerance."
+---
+
+Verify the `Hookferry-Signature` header on every request before you act on it. For how the signature is built, see [How Hookferry signs requests](/concepts/signature-verification).
+
+## Prerequisites
+
+- The signing secret for your destination, stored in the `HOOKFERRY_SIGNING_SECRET` environment variable. `hookferry listen` prints it on start.
+- For Node.js: Node.js 18 or later and Express 4 or later.
+- For Python: Python 3.10 or later and Flask 2 or later.
+
+## Add verification to your handler
+
+The code in both examples does the same four things:
+
+1. Reads the raw request body as bytes, before any JSON parsing.
+2. Splits the `Hookferry-Signature` header into `t` and `v1`.
+3. Rejects the request if `t` is more than 300 seconds from the current time.
+4. Computes the HMAC-SHA256 of `t + "." + raw body` and compares it to `v1` in constant time.
+
+<CodeGroup>
+```javascript server.js
+const crypto = require("node:crypto");
+const express = require("express");
+
+const app = express();
+const SECRET = process.env.HOOKFERRY_SIGNING_SECRET;
+const TOLERANCE_SECONDS = 300;
+
+function verifyHookferrySignature(rawBody, header) {
+  if (!header) return false;
+  const parts = Object.fromEntries(
+    header.split(",").map((part) => part.trim().split("="))
+  );
+  const timestamp = Number(parts.t);
+  const signature = parts.v1;
+  if (!timestamp || !signature) return false;
+
+  const age = Math.abs(Math.floor(Date.now() / 1000) - timestamp);
+  if (age > TOLERANCE_SECONDS) return false;
+
+  const expected = crypto
+    .createHmac("sha256", SECRET)
+    .update(`${timestamp}.`)
+    .update(rawBody)
+    .digest("hex");
+
+  const a = Buffer.from(expected, "hex");
+  const b = Buffer.from(signature, "hex");
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+// express.raw keeps the body as a Buffer. Don't use express.json() on this route.
+app.post("/webhooks", express.raw({ type: "*/*" }), (req, res) => {
+  if (!verifyHookferrySignature(req.body, req.get("Hookferry-Signature"))) {
+    return res.status(401).send("invalid signature");
+  }
+  const event = JSON.parse(req.body.toString("utf8"));
+  console.log("Verified event", req.get("Hookferry-Event-Id"), event.type);
+  res.sendStatus(200);
+});
+
+app.listen(3000, () => console.log("Listening on http://localhost:3000"));
+```
+
+```python app.py
+import hashlib
+import hmac
+import os
+import time
+
+from flask import Flask, abort, request
+
+app = Flask(__name__)
+SECRET = os.environ["HOOKFERRY_SIGNING_SECRET"].encode()
+TOLERANCE_SECONDS = 300
+
+
+def verify_hookferry_signature(raw_body: bytes, header: str | None) -> bool:
+    if not header:
+        return False
+    parts = dict(part.strip().split("=", 1) for part in header.split(","))
+    try:
+        timestamp = int(parts["t"])
+        signature = parts["v1"]
+    except (KeyError, ValueError):
+        return False
+
+    if abs(int(time.time()) - timestamp) > TOLERANCE_SECONDS:
+        return False
+
+    signed_payload = f"{timestamp}.".encode() + raw_body
+    expected = hmac.new(SECRET, signed_payload, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature)
+
+
+@app.post("/webhooks")
+def webhooks():
+    # get_data() returns the raw bytes. Don't call request.get_json() first.
+    raw_body = request.get_data()
+    if not verify_hookferry_signature(raw_body, request.headers.get("Hookferry-Signature")):
+        abort(401)
+    event = request.get_json(force=True)
+    print("Verified event", request.headers.get("Hookferry-Event-Id"), event.get("type"))
+    return "", 200
+
+
+if __name__ == "__main__":
+    app.run(port=3000)
+```
+</CodeGroup>
+
+## Test the handler
+
+<Steps>
+  <Step title="Start the app with the secret">
+    <CodeGroup>
+    ```bash Node.js
+    npm install express
+    HOOKFERRY_SIGNING_SECRET=whsec_3c1b7f0e9a5d4c2b8e6f node server.js
+    ```
+
+    ```bash Python
+    pip install flask
+    HOOKFERRY_SIGNING_SECRET=whsec_3c1b7f0e9a5d4c2b8e6f python app.py
+    ```
+    </CodeGroup>
+
+    Use the secret that `hookferry listen` printed for your source.
+  </Step>
+  <Step title="Start a listen session">
+    ```bash
+    hookferry listen 3000 --source billing-dev --path /webhooks
+    ```
+  </Step>
+  <Step title="Send a request to the source URL">
+    ```bash
+    curl -X POST https://in.hookferry.dev/src_9fK2mQ7wLx \
+      -H "Content-Type: application/json" \
+      -d '{"type":"invoice.paid","id":"inv_1042"}'
+    ```
+
+    The app prints `Verified event evt_… invoice.paid`, and the listen session shows `200 OK`.
+  </Step>
+</Steps>
+
+If the app returns `401`, see [Fix signature verification errors](/troubleshooting/signature-errors).

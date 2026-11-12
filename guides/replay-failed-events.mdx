@@ -1,0 +1,97 @@
+---
+title: "Replay failed events"
+description: "Find events that failed or weren't delivered, fix the cause, and deliver them again with the CLI or the API."
+---
+
+Replay lets you deliver stored events again after you fix a bug in your handler or restart your app. For how replay differs from automatic retries, see [Retries and replay](/concepts/retries-and-replay).
+
+## Prerequisites
+
+- The Hookferry CLI, signed in, or an API key in `HOOKFERRY_API_KEY`.
+- Events inside your plan's retention period: 3 days on Free, 30 days on Team.
+- For CLI destinations: a running `hookferry listen` session on the source.
+
+<Steps>
+  <Step title="Find the events to replay">
+    List failed and undelivered events for the source:
+
+    ```bash
+    hookferry events list --source billing-dev --status failed --since 1d
+    hookferry events list --source billing-dev --status undelivered --since 1d
+    ```
+  </Step>
+
+  <Step title="Find out why they failed">
+    Check the delivery attempts for one event:
+
+    ```bash
+    hookferry events get evt_5Rb2Kc9tWm --attempts
+    ```
+
+    A `5xx` result points to a bug in your handler. `connection refused` means your app wasn't running or listened on a different address. See [Fix "connection refused" when forwarding to localhost](/troubleshooting/connection-refused).
+  </Step>
+
+  <Step title="Fix the cause">
+    Deploy or restart your handler with the fix. For a CLI destination, start the listen session again:
+
+    ```bash
+    hookferry listen 3000 --source billing-dev --path /webhooks/billing
+    ```
+  </Step>
+
+  <Step title="Replay the events">
+    <Tabs>
+      <Tab title="CLI">
+        Replay one event:
+
+        ```bash
+        hookferry replay evt_5Rb2Kc9tWm
+        ```
+
+        Or replay every failed event from the last day:
+
+        ```bash
+        hookferry replay --source billing-dev --status failed --since 1d --yes
+        ```
+      </Tab>
+      <Tab title="API">
+        Replay one event:
+
+        ```bash
+        curl -X POST https://api.hookferry.dev/v1/events/evt_5Rb2Kc9tWm/replay \
+          -H "Authorization: Bearer $HOOKFERRY_API_KEY"
+        ```
+
+        Or replay in bulk:
+
+        ```bash
+        curl https://api.hookferry.dev/v1/replays \
+          -H "Authorization: Bearer $HOOKFERRY_API_KEY" \
+          -H "Content-Type: application/json" \
+          -d '{"source_id": "src_9fK2mQ7wLx", "status": "failed", "created_after": "2026-11-01T00:00:00Z"}'
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Check the result">
+    Each command returns a replay ID. Check its progress:
+
+    ```bash
+    hookferry replay status rpl_7Tn3Wc0bQe
+    ```
+
+    When the status is `completed`, run `hookferry events list --source billing-dev --since 1d` and confirm the events now show `delivered`.
+  </Step>
+</Steps>
+
+## Limits
+
+- One replay command or request can include up to 1,000 events. For more, run several replays with narrower time ranges.
+- You can't replay an event after the retention period ends. The API returns `410` with the code `event_expired`.
+- Replays aren't retried automatically. If a replayed delivery fails, replay it again.
+
+## Related pages
+
+- [hookferry replay](/cli/replay)
+- [Replay an event](/api-reference/replays/replay-an-event)

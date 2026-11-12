@@ -1,0 +1,72 @@
+---
+title: "hookferry events"
+description: "Reference for hookferry events list and hookferry events get, which show stored events, their bodies, and their delivery attempts."
+---
+
+## hookferry events list
+
+Lists stored events, newest first.
+
+```bash
+hookferry events list [flags]
+```
+
+| Flag | Default | Description |
+| :-- | :-- | :-- |
+| `--source <name>` | All sources | Show only events from this source. |
+| `--status <status>` | All statuses | Show only events with this status: `pending`, `delivered`, `failed`, `undelivered`, or `filtered`. |
+| `--since <duration>` | No limit | Show only events received in this period, such as `30m`, `2h`, or `3d`. |
+| `--limit <n>` | `20` | The number of events to show, from 1 to 1000. |
+
+### Example: list failed events from the last two hours
+
+```bash
+hookferry events list --source billing-dev --status failed --since 2h
+```
+
+```text Output
+ID              RECEIVED             STATUS   ROUTES
+evt_5Rb2Kc9tWm  2026-11-02 09:21:40  failed   1
+evt_1Cq7Jd4vXa  2026-11-02 08:03:12  failed   1
+```
+
+With `--json`, the command prints a JSON array of event objects with the same fields as the [Event object](/api-reference/events/get-an-event) in the API.
+
+## hookferry events get
+
+Shows one event.
+
+```bash
+hookferry events get <event_id> [flags]
+```
+
+| Flag | Description |
+| :-- | :-- |
+| `--body` | Print only the raw body. Use it to save a payload to a file. |
+| `--attempts` | Include every delivery attempt for the event. |
+
+### Example: save an event body to a file
+
+```bash
+hookferry events get evt_2Lq0Vb8sNd --body > invoice-paid.json
+```
+
+### Example: see why an event failed
+
+```bash
+hookferry events get evt_5Rb2Kc9tWm --attempts
+```
+
+```text Output
+Event    evt_5Rb2Kc9tWm  (failed)
+Source   billing-dev
+Received 2026-11-02 09:21:40
+
+ATTEMPT  ROUTE           RESULT                         DURATION
+1        rte_4Hs8PzQ1aa  500 Internal Server Error      31 ms
+```
+
+## Related pages
+
+- [Events and delivery attempts](/concepts/events-and-attempts)
+- [List events](/api-reference/events/list-events) in the API reference

@@ -1,0 +1,62 @@
+---
+title: "CLI global flags, environment variables, and exit codes"
+description: "Flags that work with every hookferry command, the environment variables the CLI reads, how it chooses credentials, and what each exit code means."
+---
+
+## Command syntax
+
+```bash
+hookferry <command> [subcommand] [arguments] [flags]
+```
+
+Run `hookferry <command> --help` to see the flags for any command.
+
+## Global flags
+
+These flags work with every command.
+
+| Flag | Description |
+| :-- | :-- |
+| `--api-key <key>` | Use this API key for this command only. Overrides `HOOKFERRY_API_KEY` and stored credentials. |
+| `--json` | Print output as JSON instead of a table. Use it in scripts. |
+| `--no-color` | Turn off colored output. |
+| `--verbose` | Print each API request and response to standard error. |
+| `-h`, `--help` | Show help for the command. |
+| `-v`, `--version` | Print the CLI version. |
+
+## Environment variables
+
+| Variable | Description |
+| :-- | :-- |
+| `HOOKFERRY_API_KEY` | An API key to use instead of stored credentials. Keys start with `hf_live_` or `hf_test_`. |
+| `HOOKFERRY_CONFIG_DIR` | The directory for configuration and credentials. Defaults to `~/.config/hookferry` on macOS and Linux and `%APPDATA%\hookferry` on Windows. |
+| `NO_COLOR` | If set to any value, turns off colored output. |
+
+## How the CLI chooses credentials
+
+The CLI uses the first credential it finds, in this order:
+
+1. The `--api-key` flag.
+2. The `HOOKFERRY_API_KEY` environment variable.
+3. The credentials saved by [`hookferry login`](/cli/login).
+
+If it finds none, the command exits with code `3`.
+
+## Exit codes
+
+| Code | Meaning |
+| :-- | :-- |
+| `0` | The command succeeded. |
+| `1` | The command failed. The error message explains why. |
+| `2` | The command was used incorrectly, for example an unknown flag. |
+| `3` | No valid credentials. Run `hookferry login` or set `HOOKFERRY_API_KEY`. |
+| `4` | The CLI couldn't reach `api.hookferry.dev`. Check your network or proxy. |
+
+## Use a proxy
+
+The CLI reads the standard `HTTPS_PROXY` and `NO_PROXY` environment variables.
+
+```bash
+export HTTPS_PROXY=http://proxy.internal.example.com:8080
+hookferry listen 3000 --source billing-dev
+```

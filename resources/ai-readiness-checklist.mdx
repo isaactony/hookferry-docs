@@ -1,0 +1,55 @@
+---
+title: "AI readiness checklist for documentation"
+description: "A reusable checklist for making a documentation site accurate and easy to use for AI assistants, MCP clients, and coding agents."
+---
+
+Use this checklist to audit any documentation site for AI readiness. It covers the content itself, the machine-readable files around it, and how you test the result. These Hookferry docs pass every item. The notes say where to look for an example.
+
+AI tools read docs differently from people. They often get one page or one chunk at a time, with no sidebar, no earlier pages, and no images. Each item below makes a page easier to understand on its own.
+
+## Page content
+
+- [ ] **Every page has a specific title and a one-sentence description in its frontmatter.** AI tools use the description to choose a page from `llms.txt` and search results. *Example: every page in this site.*
+- [ ] **Each page covers one topic.** A page about signatures and retries gets split into two pages, so a search returns the right one. *Example: [Retries and replay](/concepts/retries-and-replay) and [How Hookferry signs requests](/concepts/signature-verification).*
+- [ ] **Headings describe their section.** "Retry schedule for HTTPS destinations" instead of "Details". AI tools split pages into chunks at headings, and the heading is often the only context a chunk keeps.
+- [ ] **Prerequisites are listed at the top of each task.** Don't assume the reader came from another page.
+- [ ] **Cross-references are links, not positions.** Write "see [Filter events with route rules](/guides/filter-events)", not "as mentioned above".
+- [ ] **Facts are stated in one sentence, with numbers.** "Up to 8 attempts over about 22 hours", not "several retries".
+- [ ] **Code samples are complete and labeled with a language.** An agent should be able to copy one and run it without missing imports. *Example: [Verify webhook signatures in Node.js and Python](/guides/verify-signatures).*
+- [ ] **Placeholders are obvious and secrets come from environment variables.** Agents copy examples literally.
+- [ ] **Information isn't only in images or videos.** Diagrams get a text version.
+- [ ] **Errors are documented by their exact message or code.** People paste the error text into AI tools, so the docs need to contain that string. *Example: [API errors](/api-reference/errors).*
+
+## Terminology
+
+- [ ] **One term per concept, used everywhere.** If the docs say "source", they never also say "endpoint" or "inbox" for the same thing.
+- [ ] **A glossary page defines every product term.** *Example: [Hookferry glossary](/resources/glossary).*
+- [ ] **Terms that are easy to confuse are defined against each other.** *Example: retry and replay in the glossary.*
+
+## Structure and navigation
+
+- [ ] **Content types are separated:** tutorials, concepts, how-to guides, reference, and troubleshooting. An AI tool can then answer "how do I" from a guide and "what is" from a concept page.
+- [ ] **Troubleshooting pages are organized by symptom.** Users describe what they see, not the cause.
+- [ ] **An API reference is generated from an OpenAPI spec,** so field names, types, and limits are exact.
+
+## Machine-readable files
+
+- [ ] **`llms.txt` exists and lists every page with its description.** Mintlify generates it at `/llms.txt`.
+- [ ] **`llms-full.txt` exists** for tools that can't follow links.
+- [ ] **Every page is available as Markdown** by adding `.md` to the URL.
+- [ ] **A `skill.md` file summarizes the product for agents:** what it does, the common commands, and the rules that are easy to get wrong. *Example: [/skill.md](/skill.md).*
+- [ ] **Site-wide agent instructions are set** with `markdown.instructions` in `docs.json`, for rules every answer must follow.
+
+## AI tool integrations
+
+- [ ] **The contextual menu is on:** copy page, view as Markdown, open in ChatGPT and Claude, and connect the MCP server.
+- [ ] **An MCP server is available** at `/mcp`, and a docs page explains how to connect it. *Example: [Use Hookferry docs with AI tools](/ai-tools).*
+- [ ] **A copyable prompt installs the skill** with the Prompt component.
+
+## Testing
+
+- [ ] **Run CLI checks on every change:** `mint validate`, `mint broken-links`, and `mint a11y`.
+- [ ] **Read three random pages as Markdown** and check that tables, tabs, and code blocks survived.
+- [ ] **Run a question test:** write at least 10 real user questions, ask an AI tool connected only to the docs, and grade each answer as correct, partly correct, or wrong.
+- [ ] **Fix the docs, not the prompt.** When an answer is wrong, find the missing or unclear sentence and change the page. Then run the question again.
+- [ ] **Run `mint score`** on the deployed site for Mintlify's agent readiness score.

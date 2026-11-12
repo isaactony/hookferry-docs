@@ -1,0 +1,184 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Hookferry",
+  "description": "Hookferry is a CLI and REST API for receiving, forwarding, inspecting, and replaying webhooks during local development and in CI.",
+  "colors": {
+    "primary": "#0E7C66",
+    "light": "#34C3A0",
+    "dark": "#1A9E80"
+  },
+  "favicon": "/favicon.svg",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "icons": {
+    "library": "lucide"
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": [
+              "index",
+              "quickstart",
+              "installation",
+              "ai-tools"
+            ]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "concepts/sources-routes-destinations",
+              "concepts/events-and-attempts",
+              "concepts/signature-verification",
+              "concepts/retries-and-replay"
+            ]
+          },
+          {
+            "group": "How-to guides",
+            "pages": [
+              "guides/forward-webhooks-to-localhost",
+              "guides/verify-signatures",
+              "guides/filter-events",
+              "guides/replay-failed-events",
+              "guides/use-hookferry-in-ci"
+            ]
+          },
+          {
+            "group": "CLI reference",
+            "pages": [
+              "cli/global-options",
+              "cli/login",
+              "cli/listen",
+              "cli/events",
+              "cli/replay",
+              "cli/config"
+            ]
+          },
+          {
+            "group": "Troubleshooting",
+            "pages": [
+              "troubleshooting/signature-errors",
+              "troubleshooting/connection-refused",
+              "troubleshooting/missing-events"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "resources/faq",
+              "resources/glossary",
+              "changelog",
+              "resources/ai-readiness-checklist"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API reference",
+        "openapi": "api-reference/openapi.yaml",
+        "groups": [
+          {
+            "group": "Using the API",
+            "pages": [
+              "api-reference/authentication",
+              "api-reference/errors",
+              "api-reference/pagination",
+              "api-reference/rate-limits"
+            ]
+          },
+          {
+            "group": "Sources",
+            "pages": [
+              "GET /sources",
+              "POST /sources",
+              "GET /sources/{source_id}",
+              "DELETE /sources/{source_id}"
+            ]
+          },
+          {
+            "group": "Routes",
+            "pages": [
+              "GET /routes",
+              "POST /routes",
+              "PATCH /routes/{route_id}"
+            ]
+          },
+          {
+            "group": "Events",
+            "pages": [
+              "GET /events",
+              "GET /events/{event_id}",
+              "GET /events/{event_id}/attempts"
+            ]
+          },
+          {
+            "group": "Replays",
+            "pages": [
+              "POST /events/{event_id}/replay",
+              "POST /replays",
+              "GET /replays/{replay_id}"
+            ]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Changelog",
+          "href": "/changelog",
+          "icon": "history"
+        }
+      ]
+    }
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "mcp",
+      "add-mcp",
+      "cursor",
+      "vscode",
+      "download-spec"
+    ]
+  },
+  "markdown": {
+    "instructions": [
+      "Hookferry has two interfaces: the `hookferry` CLI and the REST API at https://api.hookferry.dev/v1. Say which one an answer applies to.",
+      "Use the terms defined on the glossary page (/resources/glossary): source, route, destination, event, delivery attempt, replay, signing secret.",
+      "Webhook signatures must be verified against the raw request body. Never suggest parsing JSON before verification.",
+      "API keys start with hf_live_ or hf_test_. Never print a real key in an example; use the HOOKFERRY_API_KEY environment variable."
+    ]
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Status",
+        "href": "https://status.hookferry.dev"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Open dashboard",
+      "href": "https://app.hookferry.dev"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/hookferry"
+    }
+  },
+  "seo": {
+    "indexing": "navigable"
+  }
+}

@@ -1,0 +1,51 @@
+---
+title: "hookferry login and logout"
+description: "Reference for hookferry login, which signs the CLI in through your browser, and hookferry logout, which removes stored credentials."
+---
+
+## hookferry login
+
+Signs the CLI in to your Hookferry account and saves the credentials on your machine.
+
+```bash
+hookferry login [flags]
+```
+
+The command opens your browser to a confirmation page. After you approve, the CLI prints `Logged in as <your email>`.
+
+### Flags
+
+| Flag | Description |
+| :-- | :-- |
+| `--no-browser` | Print the confirmation URL instead of opening a browser. Use it over SSH. |
+
+### Where credentials are stored
+
+The CLI saves credentials to `credentials.toml` in the configuration directory: `~/.config/hookferry` on macOS and Linux, or `%APPDATA%\hookferry` on Windows. The file is readable only by your user.
+
+<Note>
+  Don't use `hookferry login` in CI. Set the `HOOKFERRY_API_KEY` environment variable instead. See [Use Hookferry in CI](/guides/use-hookferry-in-ci).
+</Note>
+
+### Example: sign in on a remote server
+
+```bash
+hookferry login --no-browser
+```
+
+```text Output
+Open this URL in a browser to approve the CLI:
+https://app.hookferry.dev/cli/approve?code=QJ7M-4KXT
+Waiting for approval…
+Logged in as dev@example.com
+```
+
+## hookferry logout
+
+Deletes the stored credentials from this machine. It doesn't revoke API keys.
+
+```bash
+hookferry logout
+```
+
+To revoke an API key, delete it in the dashboard under **Settings → API keys**.

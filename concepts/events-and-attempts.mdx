@@ -1,0 +1,72 @@
+---
+title: "Events and delivery attempts"
+description: "What Hookferry stores for each webhook it receives, what each event status means, and how delivery attempts record every try."
+---
+
+Every request that a source accepts becomes an **event**. Every time Hookferry tries to deliver an event to a destination, it records a **delivery attempt**.
+
+## What an event contains
+
+An event has an ID that starts with `evt_` and stores the request exactly as the provider sent it:
+
+- The HTTP method, such as `POST`.
+- All request headers, with lowercase names.
+- The raw body. Hookferry never parses, reformats, or re-encodes it.
+- The time Hookferry received it.
+
+Because the body is stored byte for byte, a provider's own signature still verifies after Hookferry forwards or replays the event.
+
+## Event statuses
+
+| Status | Meaning |
+| :-- | :-- |
+| `pending` | At least one delivery attempt is scheduled. |
+| `delivered` | Every route that matched the event got a `2xx` response. |
+| `failed` | At least one route used all its attempts without a `2xx` response. |
+| `undelivered` | The only matching route has a CLI destination, and no `hookferry listen` session was connected. |
+| `filtered` | No route's filter matched the event, so Hookferry didn't deliver it. |
+
+To list events by status, run `hookferry events list --status failed` or call [List events](/api-reference/events/list-events) with the `status` parameter.
+
+## Delivery attempts
+
+A delivery attempt records one try to deliver one event on one route. It has an ID that starts with `att_` and stores:
+
+- `number`: `1` for the first attempt, increasing with each retry.
+- `outcome`: `succeeded` if your endpoint returned `2xx` within 30 seconds, otherwise `failed`.
+- `response_status`: the HTTP status your endpoint returned, or `null` if it didn't respond.
+- `error`: a network error such as `timeout` or `connection_refused`, or `null`.
+- `next_attempt_at`: when Hookferry tries again, or `null`.
+
+To see the attempts for an event, run:
+
+```bash
+hookferry events get evt_2Lq0Vb8sNd --attempts
+```
+
+## Headers Hookferry adds to each delivery
+
+Hookferry forwards the original headers and adds these:
+
+| Header | Example | Purpose |
+| :-- | :-- | :-- |
+| `Hookferry-Event-Id` | `evt_2Lq0Vb8sNd` | Identifies the event. Use it to detect duplicate deliveries. |
+| `Hookferry-Attempt` | `3` | The attempt number. |
+| `Hookferry-Signature` | `t=1762075211,v1=9a1f…` | Proves the request came from Hookferry. See [How Hookferry signs requests](/concepts/signature-verification). |
+| `Hookferry-Replay` | `true` | Present only on replayed deliveries. |
+
+## How long events are stored
+
+Hookferry keeps events for your plan's **retention period**:
+
+| Plan | Retention period |
+| :-- | :-- |
+| Free | 3 days |
+| Team | 30 days |
+
+After the retention period, Hookferry deletes the event. It no longer appears in `hookferry events list` or the [List events](/api-reference/events/list-events) endpoint, and you can't replay it. A replay request for an expired event ID returns `410` with the code `event_expired`.
+
+## Related pages
+
+- [Retries and replay](/concepts/retries-and-replay)
+- [Fix missing events](/troubleshooting/missing-events)

@@ -1,0 +1,70 @@
+---
+title: "API authentication"
+description: "Authenticate Hookferry Cloud API requests with a bearer API key, choose between live and test keys, and keep keys out of your code."
+---
+
+Every request to the Hookferry Cloud API needs an API key. The API base URL is:
+
+```text
+https://api.hookferry.dev/v1
+```
+
+## Prerequisites
+
+- A Hookferry account with permission to manage API keys.
+
+## Create an API key
+
+1. In the dashboard, go to **Settings → API keys**.
+2. Select **Create key**, choose **Live** or **Test**, and give the key a name.
+3. Copy the key. The dashboard shows it only once.
+
+| Key type | Prefix | Use it for |
+| :-- | :-- | :-- |
+| Live | `hf_live_` | Your team's long-lived sources and routes |
+| Test | `hf_test_` | CI jobs and experiments. Test keys can't delete sources created with a live key. |
+
+## Send the key in the Authorization header
+
+Store the key in an environment variable, then send it as a bearer token:
+
+<CodeGroup>
+```bash curl
+export HOOKFERRY_API_KEY=hf_test_your_key_here
+
+curl https://api.hookferry.dev/v1/sources \
+  -H "Authorization: Bearer $HOOKFERRY_API_KEY"
+```
+
+```javascript Node.js
+const response = await fetch("https://api.hookferry.dev/v1/sources", {
+  headers: { Authorization: `Bearer ${process.env.HOOKFERRY_API_KEY}` },
+});
+const sources = await response.json();
+console.log(sources.data);
+```
+
+```python Python
+import os
+
+import requests
+
+response = requests.get(
+    "https://api.hookferry.dev/v1/sources",
+    headers={"Authorization": f"Bearer {os.environ['HOOKFERRY_API_KEY']}"},
+    timeout=10,
+)
+response.raise_for_status()
+print(response.json()["data"])
+```
+</CodeGroup>
+
+A missing, malformed, or revoked key returns `401` with the error code `api_key_invalid`. See [API errors](/api-reference/errors).
+
+## Revoke a key
+
+Delete the key in **Settings → API keys**. Requests that use it fail immediately. Running `hookferry logout` doesn't revoke keys.
+
+<Warning>
+  Never commit API keys to source control or paste them into AI chats. If a key is exposed, revoke it and create a new one.
+</Warning>

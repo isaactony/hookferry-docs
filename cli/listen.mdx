@@ -1,0 +1,92 @@
+---
+title: "hookferry listen"
+description: "Reference for hookferry listen, which connects a source to your local app and forwards each webhook while the session runs."
+---
+
+Starts a listen session that forwards events from a source to a local URL. The session runs until you press `Ctrl+C`.
+
+```bash
+hookferry listen <target> [flags]
+```
+
+## Arguments
+
+| Argument | Description |
+| :-- | :-- |
+| `<target>` | Where to forward events. Pass a port, such as `3000`, to forward to `http://localhost:3000`. Pass a full URL, such as `http://127.0.0.1:8080`, to use a different host or scheme. |
+
+## Flags
+
+| Flag | Default | Description |
+| :-- | :-- | :-- |
+| `--source <name>` | The `default_source` setting | The source to listen on. If no source has this name, the CLI creates one. |
+| `--path <path>` | `/` | The path on your local app, such as `/webhooks/billing`. |
+| `--filter <json>` | None | A route filter as JSON. Only matching events are forwarded. See [Filter events with route rules](/guides/filter-events). |
+| `--ephemeral` | `false` | Create the source as ephemeral, so Hookferry deletes it 24 hours after creation. Has no effect if the source already exists. |
+| `--header <name: value>` | None | Add a header to every forwarded request. Repeat the flag to add more than one. |
+
+If you omit `--source` and `default_source` isn't set, the command exits with code `2`.
+
+## What a listen session does
+
+When the session starts, the CLI:
+
+1. Finds or creates the source.
+2. Creates a CLI route for your account on that source, or reuses your existing one.
+3. Prints the source URL and the signing secret.
+4. Forwards each matching event to `<target><path>` and prints one line per event.
+
+Each person who runs `hookferry listen` on a source gets their own CLI route, so teammates can listen to the same source at the same time and each receives every event. Teammates must be in the same workspace, which needs the Team plan. Each session prints its own signing secret. If you start two sessions on the same source with the same account, the newest session receives events and the older one stops with a message.
+
+## Output
+
+```text Output
+Source      billing-dev (src_9fK2mQ7wLx)
+Source URL  https://in.hookferry.dev/src_9fK2mQ7wLx
+Forwarding  → http://localhost:3000/webhooks/billing
+Secret      whsec_3c1b7f0e9a5d4c2b8e6f
+Ready. Waiting for events… (Ctrl+C to stop)
+09:20:11  evt_2Lq0Vb8sNd  POST /webhooks/billing  → 200 OK  (14 ms)
+09:21:40  evt_5Rb2Kc9tWm  POST /webhooks/billing  → 500 Internal Server Error  (31 ms)
+09:22:02  evt_8Yd6Hn3pQs  POST /webhooks/billing  ✕ connection refused
+```
+
+### JSON output
+
+With `--json`, the CLI prints one JSON object per line. The first line describes the session, and each later line describes one event:
+
+```json Output
+{"type":"session","source_id":"src_9fK2mQ7wLx","source_name":"billing-dev","source_url":"https://in.hookferry.dev/src_9fK2mQ7wLx","forward_url":"http://localhost:3000/webhooks/billing","signing_secret":"whsec_3c1b7f0e9a5d4c2b8e6f"}
+{"type":"event","event_id":"evt_2Lq0Vb8sNd","method":"POST","response_status":200,"error":null,"duration_ms":14}
+```
+
+## Examples
+
+Forward to port 3000 on the path `/webhooks`:
+
+```bash
+hookferry listen 3000 --source billing-dev --path /webhooks
+```
+
+Forward only `invoice.paid` events:
+
+```bash
+hookferry listen 3000 --source billing-dev --filter '{"body.type": "invoice.paid"}'
+```
+
+Forward only events whose type starts with `invoice.`, to port 8080 on the path `/hooks`:
+
+```bash
+hookferry listen 8080 --source billing-dev --path /hooks --filter '{"body.type": {"$prefix": "invoice."}}'
+```
+
+Forward to an app that only listens on IPv4:
+
+```bash
+hookferry listen http://127.0.0.1:3000 --source billing-dev
+```
+
+## Related pages
+
+- [Forward provider webhooks to your local app](/guides/forward-webhooks-to-localhost)
+- [Fix "connection refused" when forwarding to localhost](/troubleshooting/connection-refused)

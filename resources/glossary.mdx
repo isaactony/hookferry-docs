@@ -1,0 +1,74 @@
+---
+title: "Hookferry glossary"
+description: "Definitions of the terms used across the Hookferry docs, CLI, and API, such as source, route, destination, event, and replay."
+---
+
+These docs use each term below with one meaning only. The CLI, API, and dashboard use the same terms.
+
+## API key
+
+A secret that authenticates the CLI or API requests. Live keys start with `hf_live_` and test keys start with `hf_test_`. Create keys in the dashboard under **Settings → API keys**. See [API authentication](/api-reference/authentication).
+
+## CLI destination
+
+A destination that forwards events to a URL on your machine through a running `hookferry listen` session. CLI destinations aren't retried. See [Sources, routes, and destinations](/concepts/sources-routes-destinations).
+
+## Delivery attempt
+
+One try to deliver one event on one route. IDs start with `att_`. Also called an *attempt*. See [Events and delivery attempts](/concepts/events-and-attempts).
+
+## Destination
+
+Where a route delivers events: a CLI destination or an HTTPS destination. Each destination has its own signing secret.
+
+## Ephemeral source
+
+A source that Hookferry deletes, with its events, 24 hours after creation. Used for CI runs. See [Use Hookferry in CI](/guides/use-hookferry-in-ci).
+
+## Event
+
+One HTTP request that a source received and stored. IDs start with `evt_`. An event has one of five statuses: `pending`, `delivered`, `failed`, `undelivered`, or `filtered`.
+
+## Filter
+
+A JSON object on a route that an event must match to be delivered. See [Filter events with route rules](/guides/filter-events).
+
+## HTTPS destination
+
+A destination that delivers events to a public HTTPS URL. HTTPS destinations get up to 8 attempts. See [Retries and replay](/concepts/retries-and-replay).
+
+## Listen session
+
+A running `hookferry listen` command. It forwards events from a source to your local app until you stop it. See [hookferry listen](/cli/listen).
+
+## Replay
+
+Delivering a stored event again because you asked for it. IDs start with `rpl_`. Not the same as a *retry*. See [Retries and replay](/concepts/retries-and-replay).
+
+## Retention period
+
+How long Hookferry keeps event bodies: 3 days on the Free plan and 30 days on the Team plan.
+
+## Retry
+
+An automatic delivery attempt after a failed attempt. Only HTTPS destinations are retried.
+
+## Route
+
+A rule that connects one source to one destination, with an optional filter. IDs start with `rte_`.
+
+## Signing secret
+
+The secret Hookferry uses to sign requests to one destination. Starts with `whsec_`. See [How Hookferry signs requests](/concepts/signature-verification).
+
+## Source
+
+A public endpoint that receives webhooks from a provider. IDs start with `src_`.
+
+## Source URL
+
+The public URL of a source, in the form `https://in.hookferry.dev/src_<id>`. You register it with the webhook provider.
+
+## Workspace
+
+The account-level container for sources, routes, events, and API keys. Teammates share a workspace on the Team plan.

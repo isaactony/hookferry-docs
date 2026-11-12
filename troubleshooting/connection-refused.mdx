@@ -1,0 +1,62 @@
+---
+title: "Fix \"connection refused\" when forwarding to localhost"
+description: "Fix hookferry listen output that shows connection refused because the app isn't running, uses another port, binds to IPv4 only, or runs in Docker."
+---
+
+The listen session prints `✕ connection refused` for each event, and the events get the status `failed`. This means the CLI reached your machine but nothing accepted the connection at the forward URL.
+
+Check the **Forwarding** line that `hookferry listen` printed when it started. Every fix below makes that URL reach your app.
+
+## Your app isn't running or uses a different port
+
+Confirm that your app responds at the forwarding URL:
+
+```bash
+curl -i -X POST http://localhost:3000/webhooks
+```
+
+If `curl` also fails, start your app or pass the port it actually uses, for example `hookferry listen 8080`.
+
+## Your app listens on IPv4 only
+
+On some systems, `localhost` resolves to the IPv6 address `::1` first. If your app binds only to `127.0.0.1`, the connection fails.
+
+Forward to the IPv4 address directly:
+
+```bash
+hookferry listen http://127.0.0.1:3000 --source billing-dev --path /webhooks
+```
+
+## Your app runs in a Docker container
+
+The CLI runs on your host machine, so it can reach a container only through a published port.
+
+- Publish the port when you start the container, for example `docker run -p 3000:3000 my-app`.
+- Make sure the app inside the container listens on `0.0.0.0`, not `127.0.0.1`.
+
+If you run the CLI inside another container on the same Docker network, forward to the service name instead:
+
+```bash
+hookferry listen http://my-app:3000 --source billing-dev
+```
+
+## Your app uses HTTPS locally
+
+If your local server only accepts HTTPS, pass the `https://` URL. The CLI accepts self-signed certificates for `localhost` and `127.0.0.1`.
+
+```bash
+hookferry listen https://localhost:3443 --source billing-dev
+```
+
+## Deliver the failed events after the fix
+
+Events that failed with `connection refused` aren't retried for CLI destinations. Replay them:
+
+```bash
+hookferry replay --source billing-dev --status failed --since 1h --yes
+```
+
+## Related pages
+
+- [hookferry listen](/cli/listen)
+- [Replay failed events](/guides/replay-failed-events)
